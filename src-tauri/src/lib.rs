@@ -1,34 +1,22 @@
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
 
-use std::sync::Arc;
+use crate::commands::{init_audio, is_playing, play_audio, stop_audio};
+use crate::state::AppState;
 
-use tokio::sync::Mutex;
-
-use crate::audio_engine::AudioEngine;
-
-pub mod audio_engine;
-
-struct AppState {
-    audio_engine: Arc<Mutex<AudioEngine>>,
-}
-
-#[tauri::command]
-async fn init_audio(state: tauri::State<'_, AppState>) -> Result<String, String> {
-    let mut engine = state.audio_engine.lock().await;
-
-    engine.initialize().map_err(|e| e.to_string())?;
-
-    Ok("Audio engine initialized".to_string())
-}
+pub mod audio;
+pub mod commands;
+pub mod state;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    let audio_engine = Arc::new(Mutex::new(AudioEngine::new()));
+    let app_state = AppState::new();
 
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
-        .manage(AppState { audio_engine })
-        .invoke_handler(tauri::generate_handler![init_audio])
+        .manage(app_state)
+        .invoke_handler(tauri::generate_handler![
+            init_audio, play_audio, stop_audio, is_playing
+        ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
