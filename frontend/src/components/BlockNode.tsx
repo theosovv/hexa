@@ -64,25 +64,25 @@ export function BlockNode(props: BlockNodeProps) {
   const handleInputClick = (e: MouseEvent) => {
     e.stopPropagation();
 
-    const rect = (e.target as SVGElement).getBoundingClientRect();
-
     props.onPortClick?.(props.node.id, "input", {
       x: props.node.position.x + 10,
-      y: props.node.position.y + 40,
+      y: props.node.position.y + 50,
     });
   };
+
 
   const handleOutputClick = (e: MouseEvent) => {
     e.stopPropagation();
 
     props.onPortClick?.(props.node.id, "output", {
       x: props.node.position.x + 130,
-      y: props.node.position.y + 40,
+      y: props.node.position.y + 50,
     });
   };
 
   return (
     <g
+      data-node-id={props.node.id}
       transform={`translate(${props.node.position.x}, ${props.node.position.y})`}
       class={nodeGroupStyle}
       onMouseEnter={() => setIsHovered(true)}
@@ -135,19 +135,30 @@ export function BlockNode(props: BlockNodeProps) {
       {/* Delete button (show on hover) */}
       <Show when={isHovered()}>
         <g class={deleteButtonStyle} onClick={handleDelete}>
-          <circle cx={125} cy={10} r={8} class={deleteCircleStyle} />
-          <text x={125} y={14} class={deleteTextStyle}>×</text>
+          <text x={130} y={16} class={deleteTextStyle}>×</text>
         </g>
       </Show>
 
       {/* Input port */}
-      <g class={portStyle} onClick={handleInputClick}>
+      <g
+        class={portGroupStyle}
+        onClick={handleInputClick}
+      >
+        {/* Invisible hit area */}
+        <circle cx={10} cy={50} r={16} fill="transparent" />
+        {/* Visible port */}
         <circle cx={10} cy={50} r={8} class={inputPortStyle} />
         <circle cx={10} cy={50} r={4} fill="#16a34a" />
       </g>
 
       {/* Output port */}
-      <g class={portStyle} onClick={handleOutputClick}>
+      <g
+        class={portGroupStyle}
+        onClick={handleOutputClick}
+      >
+        {/* Invisible hit area */}
+        <circle cx={130} cy={50} r={16} fill="transparent" />
+        {/* Visible port */}
         <circle cx={130} cy={50} r={8} class={outputPortStyle} />
         <circle cx={130} cy={50} r={4} fill="#dc2626" />
       </g>
@@ -228,14 +239,6 @@ const deleteTextStyle = css({
   userSelect: "none",
 });
 
-const portStyle = css({
-  cursor: "pointer",
-  transition: "transform 0.2s",
-  "&:hover": {
-    transform: "scale(1.2)",
-  },
-});
-
 const inputPortStyle = css({
   fill: "#22c55e",
   stroke: "#16a34a",
@@ -253,4 +256,9 @@ const paramStyle = css({
   fontSize: "11px",
   textAnchor: "middle",
   userSelect: "none",
+});
+
+const portGroupStyle = css({
+  cursor: "pointer",
+  transition: "transform 0.2s",
 });
