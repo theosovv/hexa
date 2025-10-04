@@ -1,11 +1,11 @@
-import { For, onMount } from "solid-js";
+import { For, Show } from "solid-js";
 
 import { css } from "../../styled-system/css";
 import { ConnectionManager } from "../canvas/ConnectionManager";
 import { DragHandler } from "../canvas/DragHandler";
 import { ViewportManager } from "../canvas/ViewportManager";
-import { createCanvasStore } from "../canvas/store";
 import type { Point } from "../canvas/types";
+import { useStudio } from "../contexts/StudioContext";
 
 import { BlockNode } from "./BlockNode";
 import { Connection } from "./Connection";
@@ -13,21 +13,19 @@ import { Connection } from "./Connection";
 export function Canvas() {
   let svgRef: SVGSVGElement | undefined;
 
+  const studio = useStudio();
   const viewport = new ViewportManager();
   const dragHandler = new DragHandler();
   const connectionManager = new ConnectionManager();
-  const store = createCanvasStore();
 
   const handleCanvasMouseDown = (e: MouseEvent) => {
     if (e.button === 1 || (e.button === 0 && e.shiftKey)) {
       e.preventDefault();
-
       let lastX = e.clientX;
       let lastY = e.clientY;
 
       const onMove = (moveE: MouseEvent) => {
         viewport.pan(moveE.clientX - lastX, moveE.clientY - lastY);
-
         lastX = moveE.clientX;
         lastY = moveE.clientY;
       };
@@ -44,60 +42,51 @@ export function Canvas() {
 
   const handleWheel = (e: WheelEvent) => {
     e.preventDefault();
-
     if (!svgRef) return;
 
     const rect = svgRef.getBoundingClientRect();
     const point = { x: e.clientX - rect.left, y: e.clientY - rect.top };
-
     viewport.zoomAt(point, -e.deltaY * 0.001);
   };
 
-  onMount(() => {
-    store.addNode({
-      id: "node-1",
-      type: "oscillator",
-      position: { x: 100, y: 100 },
-      params: { frequency: 440 },
-    });
-
-    store.addNode({
-      id: "node-2",
-      type: "filter",
-      position: { x: 400, y: 100 },
-      params: { cutoff: 1000 },
-    });
-
-    store.addNode({
-      id: "node-3",
-      type: "master",
-      position: { x: 700, y: 100 },
-      params: {},
-    });
-
-    // Add test connection
-    store.addConnection({
-      id: "conn-1",
-      from: "node-1",
-      to: "node-2",
-      fromPort: "output",
-      toPort: "input",
-    });
-  });
-
   const moveNode = (id: string, delta: Point) => {
-    store.moveNode(id, {
+    studio.canvasStore.moveNode(id, {
       x: delta.x / viewport.getZoom(),
       y: delta.y / viewport.getZoom(),
     });
   };
 
-  const deleteNode = (id: string) => {
-    store.removeNode(id);
-  };
+  const handlePortClick = (nodeId: string, port: "input" | "output", position: Point) => {
+    if (port === "output") {
+      connectionManager.startConnection(nodeId, position);
 
-  const deleteConnection = (id: string) => {
-    store.removeConnection(id);
+      const onMove = (e: MouseEvent) => {
+        if (!svgRef) return;
+        const rect = svgRef.getBoundingClientRect();
+        const worldPos = viewport.screenToWorld({
+          x: e.clientX - rect.left,
+          y: e.clientY - rect.top,
+        });
+
+        connectionManager.updateConnection(worldPos);
+      };
+
+      const onUp = (e: MouseEvent) => {
+        const target = e.target as SVGElement;
+        const targetNodeId = target.closest("g[data-node-id]")?.getAttribute("data-node-id");
+
+        if (targetNodeId && targetNodeId !== nodeId) {
+          studio.addConnection(nodeId, targetNodeId);
+        }
+
+        connectionManager.cancelConnection();
+        window.removeEventListener("mousemove", onMove);
+        window.removeEventListener("mouseup", onUp);
+      };
+
+      window.addEventListener("mousemove", onMove);
+      window.addEventListener("mouseup", onUp);
+    }
   };
 
   return (
@@ -107,7 +96,6 @@ export function Canvas() {
       onMouseDown={handleCanvasMouseDown}
       onWheel={handleWheel}
     >
-      {/* Grid background */}
       <defs>
         <pattern
           id="grid"
@@ -127,36 +115,42 @@ export function Canvas() {
       <rect width="100%" height="100%" fill="url(#grid)" />
 
       <g transform={viewport.getTransform()}>
-        {/* Connections layer */}
         <g class="connections">
-          <For each={Array.from(store.connections().values())}>
+          <For each={Array.from(studio.canvasStore.connections().values())}>
             {(conn) => {
-              const fromNode = store.nodes().get(conn.from);
-              const toNode = store.nodes().get(conn.to);
-
-              if (!fromNode || !toNode) return null;
-
-              const fromPos = {
-                x: fromNode.position.x + 120,
-                y: fromNode.position.y + 40,
-              };
-              const toPos = {
-                x: toNode.position.x,
-                y: toNode.position.y + 40,
-              };
+              const fromNode = () => studio.canvasStore.nodes().get(conn.from);
+              const toNode = () => studio.canvasStore.nodes().get(conn.to);
 
               return (
-                <Connection
-                  id={conn.id}
-                  from={fromPos}
-                  to={toPos}
-                  onDelete={deleteConnection}
-                />
+                <Show when={fromNode() && toNode()}>
+                  {(() => {
+                    const from = fromNode()!;
+                    const to = toNode()!;
+
+                    const fromPos = () => ({
+                      x: from.position.x + 130,
+                      y: from.position.y + 50,
+                    });
+
+                    const toPos = () => ({
+                      x: to.position.x + 10,
+                      y: to.position.y + 50,
+                    });
+
+                    return (
+                      <Connection
+                        id={conn.id}
+                        from={fromPos()}
+                        to={toPos()}
+                        onDelete={studio.removeConnection}
+                      />
+                    );
+                  })()}
+                </Show>
               );
             }}
           </For>
 
-          {/* Temp connection while dragging */}
           {connectionManager.getTempConnection() && (
             <Connection
               id="temp"
@@ -167,15 +161,15 @@ export function Canvas() {
           )}
         </g>
 
-        {/* Nodes layer */}
         <g class="nodes">
-          <For each={Array.from(store.nodes().values())}>
+          <For each={Array.from(studio.canvasStore.nodes().values())}>
             {(node) => (
               <BlockNode
                 node={node}
                 dragHandler={dragHandler}
                 onMove={moveNode}
-                onDelete={deleteNode}
+                onDelete={studio.removeNode}
+                onPortClick={handlePortClick}
               />
             )}
           </For>
@@ -191,4 +185,3 @@ const canvasStyle = css({
   background: "#0a0a0a",
   cursor: "default",
 });
-
