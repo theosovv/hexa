@@ -3,13 +3,13 @@
 //   sqlc v1.30.0
 // source: users.sql
 
-package db
+package sqlc
 
 import (
 	"context"
-	"database/sql"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 const createUser = `-- name: CreateUser :one
@@ -22,15 +22,15 @@ RETURNING id, email, display_name, avatar_url, oauth_provider, oauth_id, storage
 `
 
 type CreateUserParams struct {
-	Email         string         `json:"email"`
-	DisplayName   sql.NullString `json:"display_name"`
-	AvatarUrl     sql.NullString `json:"avatar_url"`
-	OauthProvider string         `json:"oauth_provider"`
-	OauthID       string         `json:"oauth_id"`
+	Email         string      `json:"email"`
+	DisplayName   pgtype.Text `json:"display_name"`
+	AvatarUrl     pgtype.Text `json:"avatar_url"`
+	OauthProvider string      `json:"oauth_provider"`
+	OauthID       string      `json:"oauth_id"`
 }
 
 func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, error) {
-	row := q.db.QueryRowContext(ctx, createUser,
+	row := q.db.QueryRow(ctx, createUser,
 		arg.Email,
 		arg.DisplayName,
 		arg.AvatarUrl,
@@ -59,7 +59,7 @@ WHERE id = $1
 `
 
 func (q *Queries) DeleteUser(ctx context.Context, id uuid.UUID) error {
-	_, err := q.db.ExecContext(ctx, deleteUser, id)
+	_, err := q.db.Exec(ctx, deleteUser, id)
 	return err
 }
 
@@ -69,7 +69,7 @@ WHERE id = $1 LIMIT 1
 `
 
 func (q *Queries) GetUser(ctx context.Context, id uuid.UUID) (User, error) {
-	row := q.db.QueryRowContext(ctx, getUser, id)
+	row := q.db.QueryRow(ctx, getUser, id)
 	var i User
 	err := row.Scan(
 		&i.ID,
@@ -92,7 +92,36 @@ WHERE email = $1 LIMIT 1
 `
 
 func (q *Queries) GetUserByEmail(ctx context.Context, email string) (User, error) {
-	row := q.db.QueryRowContext(ctx, getUserByEmail, email)
+	row := q.db.QueryRow(ctx, getUserByEmail, email)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.Email,
+		&i.DisplayName,
+		&i.AvatarUrl,
+		&i.OauthProvider,
+		&i.OauthID,
+		&i.StorageUsed,
+		&i.StorageLimit,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const getUserByOAuth = `-- name: GetUserByOAuth :one
+SELECT id, email, display_name, avatar_url, oauth_provider, oauth_id, storage_used, storage_limit, created_at, updated_at FROM users
+WHERE oauth_provider = $1 AND oauth_id = $2
+LIMIT 1
+`
+
+type GetUserByOAuthParams struct {
+	OauthProvider string `json:"oauth_provider"`
+	OauthID       string `json:"oauth_id"`
+}
+
+func (q *Queries) GetUserByOAuth(ctx context.Context, arg GetUserByOAuthParams) (User, error) {
+	row := q.db.QueryRow(ctx, getUserByOAuth, arg.OauthProvider, arg.OauthID)
 	var i User
 	err := row.Scan(
 		&i.ID,
@@ -117,13 +146,13 @@ RETURNING id, email, display_name, avatar_url, oauth_provider, oauth_id, storage
 `
 
 type UpdateUserParams struct {
-	ID          uuid.UUID      `json:"id"`
-	DisplayName sql.NullString `json:"display_name"`
-	AvatarUrl   sql.NullString `json:"avatar_url"`
+	ID          uuid.UUID   `json:"id"`
+	DisplayName pgtype.Text `json:"display_name"`
+	AvatarUrl   pgtype.Text `json:"avatar_url"`
 }
 
 func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) (User, error) {
-	row := q.db.QueryRowContext(ctx, updateUser, arg.ID, arg.DisplayName, arg.AvatarUrl)
+	row := q.db.QueryRow(ctx, updateUser, arg.ID, arg.DisplayName, arg.AvatarUrl)
 	var i User
 	err := row.Scan(
 		&i.ID,
@@ -138,4 +167,20 @@ func (q *Queries) UpdateUser(ctx context.Context, arg UpdateUserParams) (User, e
 		&i.UpdatedAt,
 	)
 	return i, err
+}
+
+const updateUserStorage = `-- name: UpdateUserStorage :exec
+UPDATE users
+SET storage_used = $2, updated_at = NOW()
+WHERE id = $1
+`
+
+type UpdateUserStorageParams struct {
+	ID          uuid.UUID   `json:"id"`
+	StorageUsed pgtype.Int8 `json:"storage_used"`
+}
+
+func (q *Queries) UpdateUserStorage(ctx context.Context, arg UpdateUserStorageParams) error {
+	_, err := q.db.Exec(ctx, updateUserStorage, arg.ID, arg.StorageUsed)
+	return err
 }

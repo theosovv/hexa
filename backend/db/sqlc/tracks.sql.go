@@ -3,14 +3,13 @@
 //   sqlc v1.30.0
 // source: tracks.sql
 
-package db
+package sqlc
 
 import (
 	"context"
-	"database/sql"
-	"encoding/json"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 const createTrack = `-- name: CreateTrack :one
@@ -23,15 +22,15 @@ RETURNING id, user_id, title, description, is_public, bpm, graph_data, created_a
 `
 
 type CreateTrackParams struct {
-	UserID      uuid.NullUUID   `json:"user_id"`
-	Title       string          `json:"title"`
-	Description sql.NullString  `json:"description"`
-	Bpm         sql.NullInt32   `json:"bpm"`
-	GraphData   json.RawMessage `json:"graph_data"`
+	UserID      pgtype.UUID `json:"user_id"`
+	Title       string      `json:"title"`
+	Description pgtype.Text `json:"description"`
+	Bpm         pgtype.Int4 `json:"bpm"`
+	GraphData   []byte      `json:"graph_data"`
 }
 
 func (q *Queries) CreateTrack(ctx context.Context, arg CreateTrackParams) (Track, error) {
-	row := q.db.QueryRowContext(ctx, createTrack,
+	row := q.db.QueryRow(ctx, createTrack,
 		arg.UserID,
 		arg.Title,
 		arg.Description,
@@ -59,7 +58,7 @@ WHERE id = $1
 `
 
 func (q *Queries) DeleteTrack(ctx context.Context, id uuid.UUID) error {
-	_, err := q.db.ExecContext(ctx, deleteTrack, id)
+	_, err := q.db.Exec(ctx, deleteTrack, id)
 	return err
 }
 
@@ -70,7 +69,7 @@ LIMIT 1
 `
 
 func (q *Queries) GetPublicTrack(ctx context.Context, id uuid.UUID) (Track, error) {
-	row := q.db.QueryRowContext(ctx, getPublicTrack, id)
+	row := q.db.QueryRow(ctx, getPublicTrack, id)
 	var i Track
 	err := row.Scan(
 		&i.ID,
@@ -92,7 +91,7 @@ WHERE id = $1 LIMIT 1
 `
 
 func (q *Queries) GetTrack(ctx context.Context, id uuid.UUID) (Track, error) {
-	row := q.db.QueryRowContext(ctx, getTrack, id)
+	row := q.db.QueryRow(ctx, getTrack, id)
 	var i Track
 	err := row.Scan(
 		&i.ID,
@@ -114,8 +113,8 @@ WHERE user_id = $1
 ORDER BY created_at DESC
 `
 
-func (q *Queries) ListUserTracks(ctx context.Context, userID uuid.NullUUID) ([]Track, error) {
-	rows, err := q.db.QueryContext(ctx, listUserTracks, userID)
+func (q *Queries) ListUserTracks(ctx context.Context, userID pgtype.UUID) ([]Track, error) {
+	rows, err := q.db.Query(ctx, listUserTracks, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -138,9 +137,6 @@ func (q *Queries) ListUserTracks(ctx context.Context, userID uuid.NullUUID) ([]T
 		}
 		items = append(items, i)
 	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
 	if err := rows.Err(); err != nil {
 		return nil, err
 	}
@@ -155,15 +151,15 @@ RETURNING id, user_id, title, description, is_public, bpm, graph_data, created_a
 `
 
 type UpdateTrackParams struct {
-	ID          uuid.UUID       `json:"id"`
-	Title       string          `json:"title"`
-	Description sql.NullString  `json:"description"`
-	Bpm         sql.NullInt32   `json:"bpm"`
-	GraphData   json.RawMessage `json:"graph_data"`
+	ID          uuid.UUID   `json:"id"`
+	Title       string      `json:"title"`
+	Description pgtype.Text `json:"description"`
+	Bpm         pgtype.Int4 `json:"bpm"`
+	GraphData   []byte      `json:"graph_data"`
 }
 
 func (q *Queries) UpdateTrack(ctx context.Context, arg UpdateTrackParams) (Track, error) {
-	row := q.db.QueryRowContext(ctx, updateTrack,
+	row := q.db.QueryRow(ctx, updateTrack,
 		arg.ID,
 		arg.Title,
 		arg.Description,
