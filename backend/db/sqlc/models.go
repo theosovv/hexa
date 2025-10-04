@@ -2,56 +2,63 @@
 // versions:
 //   sqlc v1.30.0
 
-package db
+package sqlc
 
 import (
-	"database/sql"
-	"encoding/json"
-
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
+type RefreshToken struct {
+	ID        uuid.UUID        `json:"id"`
+	UserID    uuid.UUID        `json:"user_id"`
+	Token     string           `json:"token"`
+	ExpiresAt pgtype.Timestamp `json:"expires_at"`
+	CreatedAt pgtype.Timestamp `json:"created_at"`
+	RevokedAt pgtype.Timestamp `json:"revoked_at"`
+}
+
 type Sample struct {
-	ID        uuid.UUID      `json:"id"`
-	UserID    uuid.NullUUID  `json:"user_id"`
-	TrackID   uuid.NullUUID  `json:"track_id"`
-	Filename  string         `json:"filename"`
-	FileSize  int64          `json:"file_size"`
-	S3Key     string         `json:"s3_key"`
-	MimeType  sql.NullString `json:"mime_type"`
-	CreatedAt sql.NullTime   `json:"created_at"`
+	ID        uuid.UUID        `json:"id"`
+	UserID    pgtype.UUID      `json:"user_id"`
+	TrackID   pgtype.UUID      `json:"track_id"`
+	Filename  string           `json:"filename"`
+	FileSize  int64            `json:"file_size"`
+	S3Key     string           `json:"s3_key"`
+	MimeType  pgtype.Text      `json:"mime_type"`
+	CreatedAt pgtype.Timestamp `json:"created_at"`
 }
 
 type Scene struct {
-	ID        uuid.UUID       `json:"id"`
-	TrackID   uuid.NullUUID   `json:"track_id"`
-	Name      string          `json:"name"`
-	StateData json.RawMessage `json:"state_data"`
-	Position  sql.NullInt32   `json:"position"`
-	CreatedAt sql.NullTime    `json:"created_at"`
+	ID        uuid.UUID        `json:"id"`
+	TrackID   pgtype.UUID      `json:"track_id"`
+	Name      string           `json:"name"`
+	StateData []byte           `json:"state_data"`
+	Position  pgtype.Int4      `json:"position"`
+	CreatedAt pgtype.Timestamp `json:"created_at"`
 }
 
 type Track struct {
-	ID          uuid.UUID       `json:"id"`
-	UserID      uuid.NullUUID   `json:"user_id"`
-	Title       string          `json:"title"`
-	Description sql.NullString  `json:"description"`
-	IsPublic    sql.NullBool    `json:"is_public"`
-	Bpm         sql.NullInt32   `json:"bpm"`
-	GraphData   json.RawMessage `json:"graph_data"`
-	CreatedAt   sql.NullTime    `json:"created_at"`
-	UpdatedAt   sql.NullTime    `json:"updated_at"`
+	ID          uuid.UUID        `json:"id"`
+	UserID      pgtype.UUID      `json:"user_id"`
+	Title       string           `json:"title"`
+	Description pgtype.Text      `json:"description"`
+	IsPublic    pgtype.Bool      `json:"is_public"`
+	Bpm         pgtype.Int4      `json:"bpm"`
+	GraphData   []byte           `json:"graph_data"`
+	CreatedAt   pgtype.Timestamp `json:"created_at"`
+	UpdatedAt   pgtype.Timestamp `json:"updated_at"`
 }
 
 type User struct {
-	ID            uuid.UUID      `json:"id"`
-	Email         string         `json:"email"`
-	DisplayName   sql.NullString `json:"display_name"`
-	AvatarUrl     sql.NullString `json:"avatar_url"`
-	OauthProvider string         `json:"oauth_provider"`
-	OauthID       string         `json:"oauth_id"`
-	StorageUsed   sql.NullInt64  `json:"storage_used"`
-	StorageLimit  sql.NullInt64  `json:"storage_limit"`
-	CreatedAt     sql.NullTime   `json:"created_at"`
-	UpdatedAt     sql.NullTime   `json:"updated_at"`
+	ID            uuid.UUID        `json:"id"`
+	Email         string           `json:"email"`
+	DisplayName   pgtype.Text      `json:"display_name"`
+	AvatarUrl     pgtype.Text      `json:"avatar_url"`
+	OauthProvider string           `json:"oauth_provider"`
+	OauthID       string           `json:"oauth_id"`
+	StorageUsed   pgtype.Int8      `json:"storage_used"`
+	StorageLimit  pgtype.Int8      `json:"storage_limit"`
+	CreatedAt     pgtype.Timestamp `json:"created_at"`
+	UpdatedAt     pgtype.Timestamp `json:"updated_at"`
 }

@@ -41,6 +41,23 @@ services:
       timeout: 10s
       retries: 3
 
+  # Redis для OAuth state и кеша
+  redis:
+    image: redis:7-alpine
+    container_name: hexa_redis_dev
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
 volumes:
   postgres_data:
   minio_data:
+  redis_data:

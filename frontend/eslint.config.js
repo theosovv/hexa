@@ -35,11 +35,24 @@ export default [
       '@typescript-eslint/no-explicit-any': 'warn',
       'solid/reactivity': 'error',
       'solid/no-destructure': 'error',
-      'import/order': ['warn', {
-        groups: ['builtin', 'external', 'internal', 'parent', 'sibling', 'index'],
-        'newlines-between': 'always',
-        alphabetize: { order: 'asc' },
-      }],
+      'import/order': [
+        'warn',
+        {
+          groups: ['builtin', 'external', 'internal', 'parent', 'sibling', 'index'],
+          'newlines-between': 'always',
+          alphabetize: { order: 'asc' },
+        },
+      ],
+      // Enforce code style
+      'quotes': ['error', 'double', { avoidEscape: true }],
+      'semi': ['error', 'always'],
+      'comma-dangle': ['error', 'always-multiline'],
+      'indent': ['error', 2, { SwitchCase: 1 }],
+      'eol-last': ['error', 'always'],
+      'no-trailing-spaces': 'error',
+      'object-curly-spacing': ['error', 'always'],
+      'array-bracket-spacing': ['error', 'never'],
+      'no-undef': 'off',
     },
   },
   {
