@@ -89,4 +89,13 @@ npm run format           # Format all
 npm run build            # Build all
 ```
 
-## Project Structure
+## Database Access
+
+```bash
+# Connect to PostgreSQL
+docker exec -it hexa_postgres_dev psql -U hexa_user -d hexa
+
+# Common queries
+\dt              # List tables
+\d users         # Describe users table
+SELECT * FROM users;
