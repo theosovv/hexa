@@ -1,12 +1,19 @@
+import { useNavigate } from "@solidjs/router";
+
 import { css } from "../../styled-system/css";
 import { useAuth } from "../contexts/AuthContext";
 import { Avatar, Button, Card, Container } from "../uikit";
 
 export function HomePage() {
   const auth = useAuth();
+  const navigate = useNavigate();
 
   const handleLogout = async () => {
     await auth.logout();
+  };
+
+  const goToStudio = () => {
+    navigate("/studio");
   };
 
   return (
@@ -24,14 +31,25 @@ export function HomePage() {
             Storage: {((auth.user()!.storage_used / 1024 / 1024) || 0).toFixed(2)} MB
             / {(auth.user()!.storage_limit / 1024 / 1024).toFixed(0)} MB
           </p>
-          <Button onClick={handleLogout} variant="danger">
-            Logout
-          </Button>
+          <div class={buttonsStyle}>
+            <Button onClick={goToStudio} variant="primary" fullWidth>
+              Open Studio
+            </Button>
+            <Button onClick={handleLogout} variant="danger" fullWidth>
+              Logout
+            </Button>
+          </div>
         </div>
       </Card>
     </Container>
   );
 }
+
+const buttonsStyle = css({
+  display: "flex",
+  flexDirection: "column",
+  gap: "12px",
+});
 
 const titleStyle = css({
   fontSize: "48px",

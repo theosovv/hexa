@@ -56,6 +56,12 @@ export default [
     },
   },
   {
+    files: ['src/canvas/**/*.ts'],
+    rules: {
+      'solid/reactivity': 'off',
+    },
+  },
+  {
     ignores: ['dist', 'node_modules', 'styled-system'],
   },
 ];

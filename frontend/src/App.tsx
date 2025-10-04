@@ -6,6 +6,7 @@ import { AuthProvider } from "./contexts/AuthContext";
 import { AuthCallback } from "./pages/AuthCallback";
 import { HomePage } from "./pages/Home";
 import { LoginPage } from "./pages/Login";
+import { StudioPage } from "./pages/Studio";
 
 export function App() {
   return (
@@ -16,6 +17,14 @@ export function App() {
           component={() => (
             <ProtectedRoute>
               <HomePage />
+            </ProtectedRoute>
+          )}
+        />
+        <Route
+          path="/studio"
+          component={() => (
+            <ProtectedRoute>
+              <StudioPage />
             </ProtectedRoute>
           )}
         />
