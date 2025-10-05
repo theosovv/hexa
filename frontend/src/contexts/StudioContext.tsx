@@ -1,10 +1,11 @@
-import { createContext, createSignal, onCleanup, useContext, type ParentComponent } from "solid-js";
+import { createContext, createSignal, onCleanup, onMount, useContext, type ParentComponent } from "solid-js";
 
 import { AudioContextManager } from "../audio/AudioContextManager";
 import { AudioGraphManager } from "../audio/AudioGraphManager";
 import type { AudioBlockType } from "../audio/types";
 import { createCanvasStore } from "../canvas/store";
 import type { ConnectionData, NodeData } from "../canvas/types";
+import { KeyboardShortcutManager } from "../utils/keyboardShortcuts";
 
 interface StudioContextType {
   canvasStore: ReturnType<typeof createCanvasStore>;
@@ -25,6 +26,7 @@ export const StudioProvider: ParentComponent = (props) => {
   const canvasStore = createCanvasStore();
   const audioGraph = new AudioGraphManager();
   const audioManager = AudioContextManager.getInstance();
+  const shortcuts = new KeyboardShortcutManager();
 
   const [isPlaying, setIsPlaying] = createSignal(false);
   const [selectedNodeId, setSelectedNodeId] = createSignal<string | null>(null);
@@ -112,8 +114,48 @@ export const StudioProvider: ParentComponent = (props) => {
     audioGraph.disconnect(id);
   };
 
+  onMount(() => {
+    shortcuts.register({
+      key: "Delete",
+      action: () => {
+        const id = selectedNodeId();
+        if (id) {
+          removeNode(id);
+        }
+      },
+    });
+
+    shortcuts.register({
+      key: "Backspace",
+      action: () => {
+        const id = selectedNodeId();
+        if (id) {
+          removeNode(id);
+        }
+      },
+    });
+
+    shortcuts.register({
+      key: "Escape",
+      action: () => {
+        selectNode(null);
+      },
+    });
+
+    shortcuts.register({
+      key: " ",
+      action: () => {
+        togglePlayback();
+      },
+    });
+
+    document.addEventListener("keydown", shortcuts.handleKeyDown);
+  });
+
   onCleanup(() => {
     audioGraph.clear();
+    shortcuts.clear();
+    document.removeEventListener("keydown", shortcuts.handleKeyDown);
   });
 
   const value: StudioContextType = {
