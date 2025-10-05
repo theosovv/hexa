@@ -57,9 +57,11 @@ export const StudioProvider: ParentComponent = (props) => {
     const id = `node-${++nodeCounter}`;
 
     const defaultParams: Record<string, any> = {
-      oscillator: { freq: "440Hz", type: "sine" },
-      filter: { cutoff: "1kHz" },
-      master: { volume: "0.8" },
+      oscillator: { freq: "440Hz", type: "sine", gain: 0.5, detune: 0 },
+      filter: { cutoff: "1kHz", type: "lowpass", q: 1, gain: 0 },
+      delay: { time: "0.25s", feedback: 0.3, mix: 0.5 },
+      reverb: { size: "2.0", decay: 3.0, mix: 0.3 },
+      master: { volume: 0.8 },
     };
 
     const nodeData: NodeData = {

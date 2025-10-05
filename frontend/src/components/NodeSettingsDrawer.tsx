@@ -2,8 +2,11 @@ import { Show, Switch, Match } from "solid-js";
 
 import { css } from "../../styled-system/css";
 import { useStudio } from "../contexts/StudioContext";
+import { DelaySettings } from "../features/DelaySettings";
+import { FilterSettings } from "../features/FilterSettings";
 import { MasterSettings } from "../features/MasterSettings";
 import { OscillatorSettings } from "../features/OscillatorSettings";
+import { ReverbSettings } from "../features/ReverbSettings";
 import { Drawer } from "../uikit";
 
 export function NodeSettingsDrawer() {
@@ -43,13 +46,25 @@ export function NodeSettingsDrawer() {
               <OscillatorSettings node={selectedNode()!} onUpdate={updateParam} />
             </Match>
 
+            <Match when={selectedNode()!.type === "filter"}>
+              <FilterSettings node={selectedNode()!} onUpdate={updateParam} />
+            </Match>
+
+            <Match when={selectedNode()!.type === "delay"}>
+              <DelaySettings node={selectedNode()!} onUpdate={updateParam} />
+            </Match>
+
+            <Match when={selectedNode()!.type === "reverb"}>
+              <ReverbSettings node={selectedNode()!} onUpdate={updateParam} />
+            </Match>
+
             <Match when={selectedNode()!.type === "master"}>
               <MasterSettings node={selectedNode()!} onUpdate={updateParam} />
             </Match>
 
             <Match when={true}>
               <div class={placeholderStyle}>
-                No settings available for this block type
+                No settings available
               </div>
             </Match>
           </Switch>

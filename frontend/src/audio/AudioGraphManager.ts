@@ -1,6 +1,9 @@
 import type { AudioBlock } from "./AudioBlock";
+import { DelayBlock } from "./blocks/DelayBlock";
+import { FilterBlock } from "./blocks/FilterBlock";
 import { MasterOutBlock } from "./blocks/MasterOutBlock";
 import { OscillatorBlock } from "./blocks/OscillatorBlock";
+import { ReverbBlock } from "./blocks/ReverbBlock";
 import type { AudioBlockType } from "./types";
 
 export class AudioGraphManager {
@@ -13,6 +16,15 @@ export class AudioGraphManager {
     switch (type) {
       case "oscillator":
         block = new OscillatorBlock(id, params);
+        break;
+      case "filter":
+        block = new FilterBlock(id, params);
+        break;
+      case "delay":
+        block = new DelayBlock(id, params);
+        break;
+      case "reverb":
+        block = new ReverbBlock(id, params);
         break;
       case "master":
         block = new MasterOutBlock(id, params);
