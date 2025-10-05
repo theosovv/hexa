@@ -1,24 +1,9 @@
-import { createSignal } from "solid-js";
-
 import { css } from "../../styled-system/css";
-import { AudioContextManager } from "../audio/AudioContextManager";
 import { useStudio } from "../contexts/StudioContext";
 import { Button } from "../uikit";
 
 export function Toolbar() {
   const studio = useStudio();
-  const audioManager = AudioContextManager.getInstance();
-  const [isPlaying, setIsPlaying] = createSignal(false);
-
-  const togglePlayback = () => {
-    if (isPlaying()) {
-      audioManager.suspend();
-      setIsPlaying(false);
-    } else {
-      audioManager.resume();
-      setIsPlaying(true);
-    }
-  };
 
   const addOscillator = () => {
     studio.addNode("oscillator", { x: 100, y: 100 + Math.random() * 200 });
@@ -31,16 +16,16 @@ export function Toolbar() {
   return (
     <div class={toolbarStyle}>
       <div class={sectionStyle}>
-        <h3 class={titleStyle}>Hexa Studio</h3>
+        <h3 class={titleStyle}>🎵 Hexa Studio</h3>
       </div>
 
       <div class={sectionStyle}>
         <Button
-          onClick={togglePlayback}
-          variant={isPlaying() ? "danger" : "primary"}
+          onClick={studio.togglePlayback}
+          variant={studio.isPlaying() ? "danger" : "primary"}
           size="sm"
         >
-          {isPlaying() ? "⏸ Stop" : "▶ Play"}
+          {studio.isPlaying() ? "⏸ Stop" : "▶ Play"}
         </Button>
       </div>
 

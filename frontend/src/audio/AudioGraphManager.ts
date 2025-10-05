@@ -4,7 +4,7 @@ import { OscillatorBlock } from "./blocks/OscillatorBlock";
 import type { AudioBlockType } from "./types";
 
 export class AudioGraphManager {
-  private blocks = new Map<string, AudioBlock>();
+  public blocks = new Map<string, AudioBlock>();
   private connections = new Map<string, { from: string; to: string }>();
 
   createBlock(id: string, type: AudioBlockType, params = {}): AudioBlock | null {

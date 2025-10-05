@@ -56,6 +56,10 @@ export function Canvas() {
     });
   };
 
+  const handleNodeDoubleClick = (nodeId: string) => {
+    studio.selectNode(nodeId);
+  };
+
   const handlePortClick = (nodeId: string, port: "input" | "output", position: Point) => {
     if (port === "output") {
       connectionManager.startConnection(nodeId, position);
@@ -170,6 +174,7 @@ export function Canvas() {
                 onMove={moveNode}
                 onDelete={studio.removeNode}
                 onPortClick={handlePortClick}
+                onDoubleClick={handleNodeDoubleClick}
               />
             )}
           </For>

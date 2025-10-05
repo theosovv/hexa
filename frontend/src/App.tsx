@@ -5,6 +5,7 @@ import { PublicRoute } from "./components/PublicRoute";
 import { AuthProvider } from "./contexts/AuthContext";
 import { AuthCallback } from "./pages/AuthCallback";
 import { HomePage } from "./pages/Home";
+import { KnobTestPage } from "./pages/KnobTest";
 import { LoginPage } from "./pages/Login";
 import { StudioPage } from "./pages/Studio";
 
@@ -20,6 +21,7 @@ export function App() {
             </ProtectedRoute>
           )}
         />
+        <Route path="/knob-test" component={KnobTestPage} />
         <Route
           path="/studio"
           component={() => (
