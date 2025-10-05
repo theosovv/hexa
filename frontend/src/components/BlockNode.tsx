@@ -11,6 +11,7 @@ interface BlockNodeProps {
   onMove: (id: string, delta: Point) => void;
   onDelete?: (id: string) => void;
   onPortClick?: (nodeId: string, port: "input" | "output", position: Point) => void;
+  onDoubleClick?: (nodeId: string) => void;
 }
 
 const NODE_COLORS: Record<string, string> = {
@@ -55,6 +56,12 @@ export function BlockNode(props: BlockNodeProps) {
     window.addEventListener("mouseup", onUp);
   };
 
+  const handleDoubleClick = (e: MouseEvent) => {
+    e.stopPropagation();
+
+    props.onDoubleClick?.(props.node.id);
+  };
+
   const handleDelete = (e: MouseEvent) => {
     e.stopPropagation();
 
@@ -87,6 +94,7 @@ export function BlockNode(props: BlockNodeProps) {
       class={nodeGroupStyle}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
+      onDblClick={handleDoubleClick}
     >
       {/* Shadow */}
       <rect

@@ -24,7 +24,10 @@ export class OscillatorBlock extends AudioBlock {
   }
 
   initialize() {
-    this.start();
+  }
+
+  isStarted(): boolean {
+    return this.oscillator !== null;
   }
 
   start() {
