@@ -29,7 +29,7 @@ export const AuthProvider: ParentComponent = (props) => {
   const setTokens = (accessToken: string, refreshToken: string) => {
     localStorage.setItem(ACCESS_TOKEN_KEY, accessToken);
     localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
-    apiClient.setAccessToken(accessToken);
+    apiClient.setTokens(accessToken, refreshToken);
   };
 
   const clearTokens = () => {
@@ -54,29 +54,6 @@ export const AuthProvider: ParentComponent = (props) => {
     }
   };
 
-  const refreshAuth = async () => {
-    const refreshToken = getRefreshToken();
-
-    if (!refreshToken) {
-      setIsLoading(false);
-      return;
-    }
-
-    try {
-      const tokens = await apiClient.refreshToken(refreshToken);
-
-      setTokens(tokens.access_token, tokens.refresh_token);
-
-      await fetchUser();
-    } catch (error) {
-      console.error("Failed to refresh token:", error);
-
-      clearTokens();
-      setUser(null);
-      setIsLoading(false);
-    }
-  };
-
   const login = (accessToken: string, refreshToken: string) => {
     setTokens(accessToken, refreshToken);
     fetchUser();
@@ -93,26 +70,36 @@ export const AuthProvider: ParentComponent = (props) => {
     }
   };
 
-  createEffect(() => {
-    const accessToken = getAccessToken();
+  const refreshAuth = async () => {
+    const refreshToken = getRefreshToken();
+    if (!refreshToken) {
+      setIsLoading(false);
+      return;
+    }
 
-    if (accessToken) {
-      apiClient.setAccessToken(accessToken);
-
-      fetchUser();
-    } else {
+    try {
+      const tokens = await apiClient.refreshTokenManual(refreshToken);
+      setTokens(tokens.access_token, tokens.refresh_token);
+      await fetchUser();
+    } catch (error) {
+      console.error("Failed to refresh token:", error);
+      clearTokens();
+      setUser(null);
       setIsLoading(false);
     }
-  });
+  };
 
   createEffect(() => {
-    if (!isAuthenticated()) return;
+    const accessToken = getAccessToken();
+    const refreshToken = getRefreshToken();
 
-    const interval = setInterval(() => {
-      refreshAuth();
-    }, 14 * 60 * 1000);
-
-    return () => clearInterval(interval);
+    if (accessToken && refreshToken) {
+      apiClient.setTokens(accessToken, refreshToken);
+      fetchUser();
+    } else {
+      console.log("No tokens, setting loading to false");
+      setIsLoading(false);
+    }
   });
 
   const value: AuthContextType = {

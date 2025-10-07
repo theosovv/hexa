@@ -54,11 +54,16 @@ func (q *Queries) CreateTrack(ctx context.Context, arg CreateTrackParams) (Track
 
 const deleteTrack = `-- name: DeleteTrack :exec
 DELETE FROM tracks
-WHERE id = $1
+WHERE id = $1 AND user_id = $2
 `
 
-func (q *Queries) DeleteTrack(ctx context.Context, id uuid.UUID) error {
-	_, err := q.db.Exec(ctx, deleteTrack, id)
+type DeleteTrackParams struct {
+	ID     uuid.UUID   `json:"id"`
+	UserID pgtype.UUID `json:"user_id"`
+}
+
+func (q *Queries) DeleteTrack(ctx context.Context, arg DeleteTrackParams) error {
+	_, err := q.db.Exec(ctx, deleteTrack, arg.ID, arg.UserID)
 	return err
 }
 
@@ -107,10 +112,80 @@ func (q *Queries) GetTrack(ctx context.Context, id uuid.UUID) (Track, error) {
 	return i, err
 }
 
+const getUserTrack = `-- name: GetUserTrack :one
+SELECT id, user_id, title, description, is_public, bpm, graph_data, created_at, updated_at FROM tracks
+WHERE id = $1 AND user_id = $2
+LIMIT 1
+`
+
+type GetUserTrackParams struct {
+	ID     uuid.UUID   `json:"id"`
+	UserID pgtype.UUID `json:"user_id"`
+}
+
+func (q *Queries) GetUserTrack(ctx context.Context, arg GetUserTrackParams) (Track, error) {
+	row := q.db.QueryRow(ctx, getUserTrack, arg.ID, arg.UserID)
+	var i Track
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.Title,
+		&i.Description,
+		&i.IsPublic,
+		&i.Bpm,
+		&i.GraphData,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const listPublicTracks = `-- name: ListPublicTracks :many
+SELECT id, user_id, title, description, is_public, bpm, graph_data, created_at, updated_at FROM tracks
+WHERE is_public = true
+ORDER BY updated_at DESC
+LIMIT $1 OFFSET $2
+`
+
+type ListPublicTracksParams struct {
+	Limit  int32 `json:"limit"`
+	Offset int32 `json:"offset"`
+}
+
+func (q *Queries) ListPublicTracks(ctx context.Context, arg ListPublicTracksParams) ([]Track, error) {
+	rows, err := q.db.Query(ctx, listPublicTracks, arg.Limit, arg.Offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Track
+	for rows.Next() {
+		var i Track
+		if err := rows.Scan(
+			&i.ID,
+			&i.UserID,
+			&i.Title,
+			&i.Description,
+			&i.IsPublic,
+			&i.Bpm,
+			&i.GraphData,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listUserTracks = `-- name: ListUserTracks :many
 SELECT id, user_id, title, description, is_public, bpm, graph_data, created_at, updated_at FROM tracks
 WHERE user_id = $1
-ORDER BY created_at DESC
+ORDER BY updated_at DESC
 `
 
 func (q *Queries) ListUserTracks(ctx context.Context, userID pgtype.UUID) ([]Track, error) {
@@ -143,10 +218,40 @@ func (q *Queries) ListUserTracks(ctx context.Context, userID pgtype.UUID) ([]Tra
 	return items, nil
 }
 
+const setTrackPublic = `-- name: SetTrackPublic :one
+UPDATE tracks
+SET is_public = $2, updated_at = NOW()
+WHERE id = $1 AND user_id = $3
+RETURNING id, user_id, title, description, is_public, bpm, graph_data, created_at, updated_at
+`
+
+type SetTrackPublicParams struct {
+	ID       uuid.UUID   `json:"id"`
+	IsPublic pgtype.Bool `json:"is_public"`
+	UserID   pgtype.UUID `json:"user_id"`
+}
+
+func (q *Queries) SetTrackPublic(ctx context.Context, arg SetTrackPublicParams) (Track, error) {
+	row := q.db.QueryRow(ctx, setTrackPublic, arg.ID, arg.IsPublic, arg.UserID)
+	var i Track
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.Title,
+		&i.Description,
+		&i.IsPublic,
+		&i.Bpm,
+		&i.GraphData,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
 const updateTrack = `-- name: UpdateTrack :one
 UPDATE tracks
 SET title = $2, description = $3, bpm = $4, graph_data = $5, updated_at = NOW()
-WHERE id = $1
+WHERE id = $1 AND user_id = $6
 RETURNING id, user_id, title, description, is_public, bpm, graph_data, created_at, updated_at
 `
 
@@ -156,6 +261,7 @@ type UpdateTrackParams struct {
 	Description pgtype.Text `json:"description"`
 	Bpm         pgtype.Int4 `json:"bpm"`
 	GraphData   []byte      `json:"graph_data"`
+	UserID      pgtype.UUID `json:"user_id"`
 }
 
 func (q *Queries) UpdateTrack(ctx context.Context, arg UpdateTrackParams) (Track, error) {
@@ -165,7 +271,38 @@ func (q *Queries) UpdateTrack(ctx context.Context, arg UpdateTrackParams) (Track
 		arg.Description,
 		arg.Bpm,
 		arg.GraphData,
+		arg.UserID,
 	)
+	var i Track
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.Title,
+		&i.Description,
+		&i.IsPublic,
+		&i.Bpm,
+		&i.GraphData,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const updateTrackGraph = `-- name: UpdateTrackGraph :one
+UPDATE tracks
+SET graph_data = $2, updated_at = NOW()
+WHERE id = $1 AND user_id = $3
+RETURNING id, user_id, title, description, is_public, bpm, graph_data, created_at, updated_at
+`
+
+type UpdateTrackGraphParams struct {
+	ID        uuid.UUID   `json:"id"`
+	GraphData []byte      `json:"graph_data"`
+	UserID    pgtype.UUID `json:"user_id"`
+}
+
+func (q *Queries) UpdateTrackGraph(ctx context.Context, arg UpdateTrackGraphParams) (Track, error) {
+	row := q.db.QueryRow(ctx, updateTrackGraph, arg.ID, arg.GraphData, arg.UserID)
 	var i Track
 	err := row.Scan(
 		&i.ID,

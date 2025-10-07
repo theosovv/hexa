@@ -93,6 +93,8 @@ func main() {
 		frontendURL,
 	)
 
+	tracksHandler := handlers.NewTracksHandler(queries)
+
 	app := fiber.New(fiber.Config{
 		AppName:      "Hexa API v1.0",
 		ReadTimeout:  10 * time.Second,
@@ -130,6 +132,13 @@ func main() {
 	protected := app.Group("/api", authMiddleware)
 	protected.Get("/me", authHandler.GetCurrentUser)
 	protected.Post("/logout", authHandler.Logout)
+
+	protected.Get("/tracks", tracksHandler.ListTracks)
+	protected.Post("/tracks", tracksHandler.CreateTrack)
+	protected.Get("/tracks/:id", tracksHandler.GetTrack)
+	protected.Put("/tracks/:id", tracksHandler.UpdateTrack)
+	protected.Patch("/tracks/:id/graph", tracksHandler.UpdateTrackGraph)
+	protected.Delete("/tracks/:id", tracksHandler.DeleteTrack)
 
 	protected.Get("/ping", func(c *fiber.Ctx) error {
 		email := c.Locals("email").(string)
