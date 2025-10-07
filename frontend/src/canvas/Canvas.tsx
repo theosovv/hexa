@@ -1,14 +1,14 @@
 import { For, Show } from "solid-js";
 
 import { css } from "../../styled-system/css";
-import { ConnectionManager } from "../canvas/ConnectionManager";
-import { DragHandler } from "../canvas/DragHandler";
-import { ViewportManager } from "../canvas/ViewportManager";
-import type { Point } from "../canvas/types";
 import { useStudio } from "../contexts/StudioContext";
 
-import { BlockNode } from "./BlockNode";
-import { Connection } from "./Connection";
+import { ConnectionManager } from "./ConnectionManager";
+import { DragHandler } from "./DragHandler";
+import { ViewportManager } from "./ViewportManager";
+import { BlockNode } from "./components/BlockNode";
+import { Connection } from "./components/Connection";
+import type { Point } from "./types";
 
 export function Canvas() {
   let svgRef: SVGSVGElement | undefined;
@@ -93,12 +93,36 @@ export function Canvas() {
     }
   };
 
+  const handleDrop = (e: DragEvent) => {
+    e.preventDefault();
+    if (!svgRef) return;
+
+    const blockType = e.dataTransfer?.getData("blockType");
+    if (!blockType) return;
+
+    const rect = svgRef.getBoundingClientRect();
+    const screenPos = {
+      x: e.clientX - rect.left,
+      y: e.clientY - rect.top,
+    };
+
+    const worldPos = viewport.screenToWorld(screenPos);
+    studio.addNode(blockType as any, worldPos);
+  };
+
+  const handleDragOver = (e: DragEvent) => {
+    e.preventDefault();
+    e.dataTransfer!.dropEffect = "copy";
+  };
+
   return (
     <svg
       ref={svgRef}
       class={canvasStyle}
       onMouseDown={handleCanvasMouseDown}
       onWheel={handleWheel}
+      onDrop={handleDrop}
+      onDragOver={handleDragOver}
     >
       <defs>
         <pattern
@@ -189,4 +213,5 @@ const canvasStyle = css({
   height: "100vh",
   background: "#0a0a0a",
   cursor: "default",
+  marginLeft: "280px",
 });

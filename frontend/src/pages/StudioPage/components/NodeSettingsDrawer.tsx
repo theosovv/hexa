@@ -1,13 +1,13 @@
 import { Show, Switch, Match } from "solid-js";
 
-import { css } from "../../styled-system/css";
-import { useStudio } from "../contexts/StudioContext";
-import { DelaySettings } from "../features/DelaySettings";
-import { FilterSettings } from "../features/FilterSettings";
-import { MasterSettings } from "../features/MasterSettings";
-import { OscillatorSettings } from "../features/OscillatorSettings";
-import { ReverbSettings } from "../features/ReverbSettings";
-import { Drawer } from "../uikit";
+import { css } from "../../../../styled-system/css";
+import { useStudio } from "../../../contexts/StudioContext";
+import { DelaySettings } from "../../../features/DelaySettings";
+import { FilterSettings } from "../../../features/FilterSettings";
+import { MasterSettings } from "../../../features/MasterSettings";
+import { OscillatorSettings } from "../../../features/OscillatorSettings";
+import { ReverbSettings } from "../../../features/ReverbSettings";
+import { Drawer } from "../../../uikit";
 
 export function NodeSettingsDrawer() {
   const studio = useStudio();

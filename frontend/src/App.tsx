@@ -4,9 +4,9 @@ import { ProtectedRoute } from "./components/ProtectedRoute";
 import { PublicRoute } from "./components/PublicRoute";
 import { AuthProvider } from "./contexts/AuthContext";
 import { AuthCallback } from "./pages/AuthCallback";
-import { HomePage } from "./pages/Home";
-import { LoginPage } from "./pages/Login";
-import { StudioPage } from "./pages/Studio";
+import { HomePage } from "./pages/HomePage";
+import { LoginPage } from "./pages/LoginPage";
+import { StudioPage } from "./pages/StudioPage";
 
 export function App() {
   return (
@@ -22,6 +22,14 @@ export function App() {
         />
         <Route
           path="/studio"
+          component={() => (
+            <ProtectedRoute>
+              <StudioPage />
+            </ProtectedRoute>
+          )}
+        />
+        <Route
+          path="/studio/:trackId"
           component={() => (
             <ProtectedRoute>
               <StudioPage />

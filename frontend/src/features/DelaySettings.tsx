@@ -19,7 +19,6 @@ export function DelaySettings(props: { node: NodeData; onUpdate: (key: string, v
           unit="ms"
           onChange={(v) => {
             props.onUpdate("time", v / 1000);
-            props.onUpdate("time", `${v / 1000}s`);
           }}
           color="#10b981"
         />

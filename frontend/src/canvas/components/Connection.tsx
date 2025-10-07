@@ -1,7 +1,7 @@
 import { createSignal } from "solid-js";
 
-import { css, cx } from "../../styled-system/css";
-import type { Point } from "../canvas/types";
+import { css, cx } from "../../../styled-system/css";
+import type { Point } from "../../canvas/types";
 
 interface ConnectionProps {
   id: string;

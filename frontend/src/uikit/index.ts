@@ -6,3 +6,4 @@ export { Avatar } from "./Avatar";
 export { Knob } from "./Knob";
 export { Slider } from "./Slider";
 export { Drawer } from "./Drawer";
+export * from "./icons";

@@ -1,9 +1,9 @@
 import { Show } from "solid-js";
 import { createSignal } from "solid-js";
 
-import { css, cx } from "../../styled-system/css";
-import type { DragHandler } from "../canvas/DragHandler";
-import type { NodeData, Point } from "../canvas/types";
+import { css, cx } from "../../../styled-system/css";
+import type { DragHandler } from "../DragHandler";
+import type { NodeData, Point } from "../types";
 
 interface BlockNodeProps {
   node: NodeData;

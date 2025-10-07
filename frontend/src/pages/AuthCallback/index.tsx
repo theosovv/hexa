@@ -1,9 +1,10 @@
 import { useNavigate, useSearchParams } from "@solidjs/router";
 import { onMount } from "solid-js";
 
-import { css } from "../../styled-system/css";
-import { useAuth } from "../contexts/AuthContext";
-import { Container, Spinner } from "../uikit";
+import { contentStyle, textStyle } from "./styles";
+
+import { useAuth } from "@/contexts/AuthContext";
+import { Container, Spinner } from "@/uikit";
 
 export function AuthCallback() {
   const navigate = useNavigate();
@@ -33,17 +34,3 @@ export function AuthCallback() {
     </Container>
   );
 }
-
-const contentStyle = css({
-  textAlign: "center",
-  display: "flex",
-  flexDirection: "column",
-  alignItems: "center",
-  gap: "16px",
-});
-
-const textStyle = css({
-  color: "white",
-  fontSize: "18px",
-  fontWeight: "600",
-});
