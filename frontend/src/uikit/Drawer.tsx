@@ -72,6 +72,7 @@ const titleStyle = css({
   color: "white",
   fontSize: "20px",
   fontWeight: "700",
+  textTransform: "capitalize",
   margin: 0,
 });
 

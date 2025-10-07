@@ -1,6 +1,8 @@
-import { NodeSettingsDrawer } from "./NodeSettingsDrawer";
-import { Sidebar } from "./Sidebar";
-import { Toolbar } from "./Toolbar";
+import { NodeSettingsDrawer } from "../NodeSettingsDrawer";
+import { Sidebar } from "../Sidebar";
+import { Toolbar } from "../Toolbar";
+
+import { pageStyle } from "./styles";
 
 import type { AudioBlockType } from "@/audio/types";
 import { Canvas } from "@/canvas";
@@ -16,11 +18,11 @@ export function StudioContent() {
   };
 
   return (
-    <>
+    <div class={pageStyle}>
       <Toolbar />
       <Sidebar onAddBlock={handleAddBlock} />
       <Canvas />
       <NodeSettingsDrawer />
-    </>
+    </div>
   );
 }

@@ -7,3 +7,5 @@ export { Knob } from "./Knob";
 export { Slider } from "./Slider";
 export { Drawer } from "./Drawer";
 export * from "./icons";
+export { Horizontal, Vertical } from "./Stack";
+export { Select } from "./Select";

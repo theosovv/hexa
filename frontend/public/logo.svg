@@ -1,0 +1,25 @@
+<svg width="120" height="120" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background circle -->
+  <circle cx="60" cy="60" r="58" fill="#0a0a0a" stroke="#667eea" stroke-width="3"/>
+  
+  <!-- Patch cables (curved connections) -->
+  <path d="M 30 35 Q 45 25, 60 35" stroke="#8b5cf6" stroke-width="3" fill="none" stroke-linecap="round"/>
+  <path d="M 60 45 Q 75 35, 90 45" stroke="#3b82f6" stroke-width="3" fill="none" stroke-linecap="round"/>
+  <path d="M 30 75 Q 45 85, 60 75" stroke="#10b981" stroke-width="3" fill="none" stroke-linecap="round"/>
+  <path d="M 60 85 Q 75 95, 90 85" stroke="#f59e0b" stroke-width="3" fill="none" stroke-linecap="round"/>
+  
+  <!-- Connecting vertical line -->
+  <path d="M 60 35 L 60 85" stroke="#667eea" stroke-width="2" fill="none" stroke-dasharray="4 4"/>
+  
+  <!-- Patch points (small circles) -->
+  <circle cx="30" cy="35" r="6" fill="#8b5cf6" stroke="#fff" stroke-width="2"/>
+  <circle cx="60" cy="35" r="6" fill="#667eea" stroke="#fff" stroke-width="2"/>
+  <circle cx="90" cy="45" r="6" fill="#3b82f6" stroke="#fff" stroke-width="2"/>
+  
+  <circle cx="30" cy="75" r="6" fill="#10b981" stroke="#fff" stroke-width="2"/>
+  <circle cx="60" cy="75" r="6" fill="#667eea" stroke="#fff" stroke-width="2"/>
+  <circle cx="90" cy="85" r="6" fill="#f59e0b" stroke="#fff" stroke-width="2"/>
+  
+  <!-- Center node -->
+  <rect x="50" y="50" width="20" height="20" rx="4" fill="#667eea" stroke="#fff" stroke-width="2"/>
+</svg>
