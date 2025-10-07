@@ -9,3 +9,4 @@ export { Drawer } from "./Drawer";
 export * from "./icons";
 export { Horizontal, Vertical } from "./Stack";
 export { Select } from "./Select";
+export { Input } from "./Input";

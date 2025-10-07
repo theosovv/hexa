@@ -28,6 +28,7 @@ interface StudioContextType {
   removeNode: (id: string) => void;
   addConnection: (fromId: string, toId: string) => void;
   removeConnection: (id: string) => void;
+  updateTrackMeta: (meta: { title?: string; bpm?: number }) => Promise<void>;
 }
 
 const StudioContext = createContext<StudioContextType>();
@@ -267,6 +268,23 @@ export const StudioProvider: ParentComponent = (props) => {
     audioGraph.disconnect(id);
   };
 
+  const updateTrackMeta = async (meta: { title?: string; bpm?: number }) => {
+    const track = currentTrack();
+    if (!track) return;
+
+    try {
+      const updated = await apiClient.updateTrack(track.id, {
+        title: meta.title || track.title,
+        description: track.description || "",
+        bpm: meta.bpm || track.bpm,
+        graph_data: track.graph_data,
+      });
+      setCurrentTrack(updated);
+    } catch (error) {
+      console.error("Failed to update track meta:", error);
+    }
+  };
+
   onCleanup(() => {
     audioGraph.clear();
     shortcuts.clear();
@@ -289,6 +307,7 @@ export const StudioProvider: ParentComponent = (props) => {
     removeNode,
     addConnection,
     removeConnection,
+    updateTrackMeta,
   };
 
   return <StudioContext.Provider value={value}>{props.children}</StudioContext.Provider>;

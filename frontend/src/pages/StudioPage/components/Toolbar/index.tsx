@@ -1,21 +1,28 @@
 import { useNavigate } from "@solidjs/router";
-import { Show } from "solid-js";
+import { createSignal, Show } from "solid-js";
 
-import { useStudio } from "../../../../contexts/StudioContext";
-import { Button, Horizontal } from "../../../../uikit";
 
 import {
   dividerStyle,
   logoContainerStyle,
   logoTextStyle,
   savingBadgeStyle,
+  titleInputStyle,
   toolbarStyle,
   trackTitleStyle,
 } from "./styles";
 
+import { useStudio } from "@/contexts/StudioContext";
+import { Button, Horizontal, Input } from "@/uikit";
+
 export function Toolbar() {
   const studio = useStudio();
   const navigate = useNavigate();
+
+  const [isEditingTitle, setIsEditingTitle] = createSignal(false);
+  const [isEditingBPM, setIsEditingBPM] = createSignal(false);
+  const [tempTitle, setTempTitle] = createSignal("");
+  const [tempBPM, setTempBPM] = createSignal(120);
 
   const handleSave = async () => {
     await studio.saveTrack();
@@ -25,9 +32,50 @@ export function Toolbar() {
     navigate("/");
   };
 
+  const startEditTitle = () => {
+    setTempTitle(studio.currentTrack()?.title || "");
+    setIsEditingTitle(true);
+  };
+
+  const startEditBPM = () => {
+    setTempBPM(studio.currentTrack()?.bpm || 120);
+    setIsEditingBPM(true);
+  };
+
+  const saveTitle = async () => {
+    if (tempTitle().trim() && studio.currentTrack()) {
+      await studio.updateTrackMeta({ title: tempTitle().trim() });
+    }
+    setIsEditingTitle(false);
+  };
+
+  const saveBPM = async () => {
+    if (tempBPM() && studio.currentTrack()) {
+      await studio.updateTrackMeta({ bpm: tempBPM() });
+    }
+    setIsEditingBPM(false);
+  };
+
+  const handleTitleKeyDown = (e: KeyboardEvent) => {
+    if (e.key === "Enter") {
+      saveTitle();
+    } else if (e.key === "Escape") {
+      setIsEditingTitle(false);
+    }
+  };
+
+  const handleBpmKeyDown = (e: KeyboardEvent) => {
+    if (e.key === "Enter") {
+      saveBPM();
+    } else if (e.key === "Escape") {
+      setIsEditingBPM(false);
+    }
+  };
+
   return (
     <div class={toolbarStyle}>
       <Horizontal gap="lg" align="center">
+        {/* Logo */}
         <Horizontal gap="sm" align="center" class={logoContainerStyle} onClick={goHome}>
           <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
             <path d="M 6 10 Q 12 6, 18 10" stroke="#8b5cf6" stroke-width="2.5" fill="none" stroke-linecap="round"/>
@@ -41,9 +89,48 @@ export function Toolbar() {
           <h3 class={logoTextStyle}>Patchwork</h3>
         </Horizontal>
 
+        {/* Track info */}
         <Show when={studio.currentTrack()}>
           <div class={dividerStyle} />
-          <span class={trackTitleStyle}>{studio.currentTrack()!.title}</span>
+
+          {/* Editable title */}
+          <Show
+            when={isEditingTitle()}
+            fallback={
+              <span class={trackTitleStyle} onDblClick={startEditTitle} title="Double-click to edit">
+                {studio.currentTrack()!.title}
+              </span>
+            }
+          >
+            <Input
+              type="text"
+              class={titleInputStyle}
+              value={tempTitle()}
+              onChange={(e) => setTempTitle(e.currentTarget.value)}
+              onBlur={saveTitle}
+              onKeyDown={handleTitleKeyDown}
+              autofocus
+            />
+          </Show>
+
+          <Show
+            when={isEditingBPM()}
+            fallback={
+              <span class={trackTitleStyle} onDblClick={startEditBPM} title="Double-click to edit">
+                {studio.currentTrack()!.bpm} BPM
+              </span>
+            }
+          >
+            <Input
+              type="number"
+              class={titleInputStyle}
+              value={tempBPM()}
+              onChange={(e) => setTempBPM(Number(e.currentTarget.value))}
+              onBlur={saveBPM}
+              onKeyDown={handleBpmKeyDown}
+              autofocus
+            />
+          </Show>
         </Show>
 
         <Show when={studio.isSaving()}>
@@ -54,7 +141,8 @@ export function Toolbar() {
         </Show>
       </Horizontal>
 
-      <Horizontal gap="md" align="center">
+      {/* Transport controls */}
+      <Horizontal gap="sm" align="center">
         <Button
           onClick={studio.togglePlayback}
           variant={studio.isPlaying() ? "danger" : "primary"}

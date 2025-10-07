@@ -58,3 +58,33 @@ export const savingBadgeStyle = css({
   fontWeight: "600",
   color: token("colors.accent.yellow"),
 });
+
+export const titleInputStyle = css({
+  fontSize: token("fontSizes.sm"),
+  fontWeight: "600",
+  color: token("colors.text.primary"),
+  background: token("colors.surface.secondary"),
+  border: `1px solid ${token("colors.border.accent")}`,
+  borderRadius: token("radii.sm"),
+  padding: `${token("spacing.xs")} ${token("spacing.sm")}`,
+  outline: "none",
+  minWidth: "200px",
+});
+export const bpmInputStyle = css({
+  fontSize: token("fontSizes.xs"),
+  fontWeight: "600",
+  padding: `4px ${token("spacing.sm")}`,
+  background: "rgba(139, 92, 246, 0.1)",
+  border: "1px solid rgba(139, 92, 246, 0.3)",
+  borderRadius: token("radii.full"),
+  color: token("colors.accent.purple"),
+  cursor: "pointer",
+  transition: "all 0.2s",
+  "&:hover": {
+    background: "rgba(139, 92, 246, 0.2)",
+  },
+  "&:focus": {
+    outline: "none",
+    borderColor: token("colors.accent.purple"),
+  },
+});

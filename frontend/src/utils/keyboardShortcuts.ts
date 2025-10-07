@@ -21,6 +21,16 @@ export class KeyboardShortcutManager {
   handleKeyDown = (e: KeyboardEvent) => {
     if (!this.enabled) return;
 
+    const target = e.target as HTMLElement;
+    if (
+      target.tagName === "INPUT" ||
+      target.tagName === "TEXTAREA" ||
+      target.tagName === "SELECT" ||
+      target.isContentEditable
+    ) {
+      return;
+    }
+
     const shortcut = this.shortcuts.find((s) => {
       const keyMatch = s.key.toLowerCase() === e.key.toLowerCase();
       const ctrlMatch = s.ctrl === undefined || s.ctrl === (e.ctrlKey || e.metaKey);
