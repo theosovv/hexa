@@ -8,7 +8,7 @@ import { DragHandler } from "./DragHandler";
 import { ViewportManager } from "./ViewportManager";
 import { BlockNode } from "./components/BlockNode";
 import { Connection } from "./components/Connection";
-import type { Point } from "./types";
+import type { NodeData, Point } from "./types";
 
 export function Canvas() {
   let svgRef: SVGSVGElement | undefined;
@@ -17,6 +17,13 @@ export function Canvas() {
   const viewport = new ViewportManager();
   const dragHandler = new DragHandler();
   const connectionManager = new ConnectionManager();
+
+  const getNodeHeight = (node: NodeData) => {
+    const paramCount = Math.min(Object.keys(node.params).length, 3);
+
+    return 90 + paramCount * 14;
+  };
+
 
   const handleCanvasMouseDown = (e: MouseEvent) => {
     if (e.button === 1 || (e.button === 0 && e.shiftKey)) {
@@ -154,15 +161,17 @@ export function Canvas() {
                   {(() => {
                     const from = fromNode()!;
                     const to = toNode()!;
+                    const fromHeight = getNodeHeight(from);
+                    const toHeight = getNodeHeight(to);
 
                     const fromPos = () => ({
                       x: from.position.x + 130,
-                      y: from.position.y + 50,
+                      y: from.position.y + fromHeight / 2,
                     });
 
                     const toPos = () => ({
                       x: to.position.x + 10,
-                      y: to.position.y + 50,
+                      y: to.position.y + toHeight / 2,
                     });
 
                     return (

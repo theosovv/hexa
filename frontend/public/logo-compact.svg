@@ -1,0 +1,14 @@
+<svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Simplified patch cables -->
+  <path d="M 6 10 Q 12 6, 18 10" stroke="#8b5cf6" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+  <path d="M 14 22 Q 20 26, 26 22" stroke="#10b981" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+  
+  <!-- Central node -->
+  <rect x="12" y="12" width="8" height="8" rx="2" fill="#667eea" stroke="#fff" stroke-width="1.5"/>
+  
+  <!-- Patch points -->
+  <circle cx="6" cy="10" r="3" fill="#8b5cf6"/>
+  <circle cx="18" cy="10" r="3" fill="#667eea"/>
+  <circle cx="14" cy="22" r="3" fill="#667eea"/>
+  <circle cx="26" cy="22" r="3" fill="#10b981"/>
+</svg>

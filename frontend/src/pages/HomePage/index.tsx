@@ -2,13 +2,23 @@ import { useNavigate } from "@solidjs/router";
 import { Show, For, createSignal, onMount } from "solid-js";
 
 import { TrackCard } from "./components/TrackCard";
-import { emptyStyle, emptyTextStyle, headerStyle, loadingStyle, nameStyle, sectionTitleStyle, storageStyle, titleStyle, tracksGridStyle, tracksHeaderStyle, userCardStyle, userInfoStyle } from "./styles";
+import {
+  emptyIconStyle,
+  emptyStyle,
+  emptySubtextStyle,
+  emptyTextStyle,
+  nameStyle,
+  pageStyle,
+  sectionTitleStyle,
+  storageStyle,
+  titleStyle,
+  tracksGridStyle,
+} from "./styles";
 
 import { apiClient } from "@/api/client";
 import type { Track } from "@/api/types/track";
 import { useAuth } from "@/contexts/AuthContext";
-import { Avatar, Button, Card, Container, Spinner } from "@/uikit";
-
+import { Avatar, Button, Card, Horizontal, Spinner, Vertical } from "@/uikit";
 
 export function HomePage() {
   const auth = useAuth();
@@ -61,60 +71,64 @@ export function HomePage() {
   };
 
   return (
-    <Container maxWidth="lg">
-      <div class={headerStyle}>
-        <h1 class={titleStyle}>🎵 Hexa</h1>
+    <Vertical fullWidth padding="2xl" gap="2xl" class={pageStyle}>
+      <Horizontal justify="between" align="center" fullWidth>
+        <h1 class={titleStyle}>Patchwork</h1>
 
-        <Card padding="sm">
-          <div class={userCardStyle}>
+        <Card padding="md" variant="glass">
+          <Horizontal gap="md" align="center">
             <Avatar src={auth.user()?.avatar_url} alt={auth.user()?.email} size="md" />
-            <div class={userInfoStyle}>
+            <Vertical gap="xs">
               <div class={nameStyle}>{auth.user()?.display_name || auth.user()?.email}</div>
               <div class={storageStyle}>
                 {((auth.user()!.storage_used / 1024 / 1024) || 0).toFixed(1)} MB
                 / {(auth.user()!.storage_limit / 1024 / 1024).toFixed(0)} MB
               </div>
-            </div>
+            </Vertical>
             <Button onClick={handleLogout} variant="ghost" size="sm">
               Logout
             </Button>
-          </div>
+          </Horizontal>
         </Card>
-      </div>
+      </Horizontal>
 
-      <div class={tracksHeaderStyle}>
-        <h2 class={sectionTitleStyle}>My Tracks</h2>
-        <Button onClick={createNewTrack} variant="primary">
-          + New Track
-        </Button>
-      </div>
+      <Vertical gap="lg" fullWidth>
+        <Horizontal justify="between" align="center">
+          <h2 class={sectionTitleStyle}>My Tracks</h2>
+          <Button onClick={createNewTrack} variant="primary">
+            + New Track
+          </Button>
+        </Horizontal>
 
-      <Show
-        when={!isLoading()}
-        fallback={
-          <div class={loadingStyle}>
-            <Spinner size="lg" />
-          </div>
-        }
-      >
         <Show
-          when={tracks().length > 0}
+          when={!isLoading()}
           fallback={
-            <div class={emptyStyle}>
-              <p class={emptyTextStyle}>No tracks yet</p>
-              <Button onClick={createNewTrack} variant="primary">
-                Create Your First Track
-              </Button>
-            </div>
+            <Horizontal justify="center" padding="3xl">
+              <Spinner size="lg" />
+            </Horizontal>
           }
         >
-          <div class={tracksGridStyle}>
-            <For each={tracks()}>
-              {(track) => <TrackCard track={track} onDelete={handleDeleteTrack} />}
-            </For>
-          </div>
+          <Show
+            when={tracks().length > 0}
+            fallback={
+              <Vertical align="center" gap="lg" padding="3xl" class={emptyStyle}>
+                <div class={emptyIconStyle}>🎵</div>
+                <p class={emptyTextStyle}>No tracks yet</p>
+                <p class={emptySubtextStyle}>Create your first modular synthesizer patch</p>
+                <Button onClick={createNewTrack} variant="primary" size="lg">
+                  Create Your First Track
+                </Button>
+              </Vertical>
+            }
+          >
+            <div class={tracksGridStyle}>
+              <For each={tracks()}>
+                {(track) => <TrackCard track={track} onDelete={handleDeleteTrack} />}
+              </For>
+            </div>
+          </Show>
         </Show>
-      </Show>
-    </Container>
+      </Vertical>
+    </Vertical>
   );
 }

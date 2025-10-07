@@ -1,4 +1,4 @@
-import { Show } from "solid-js";
+import { For, Show } from "solid-js";
 import { createSignal } from "solid-js";
 
 import { css, cx } from "../../../styled-system/css";
@@ -23,9 +23,22 @@ const NODE_COLORS: Record<string, string> = {
   default: "#6b7280",
 };
 
+function formatParamValue(value: string | number): string {
+  if (typeof value === "number") {
+    return value.toFixed(value < 1 ? 2 : 0);
+  }
+  if (typeof value === "string") {
+    return value;
+  }
+  return String(value);
+}
+
 export function BlockNode(props: BlockNodeProps) {
   const [isHovered, setIsHovered] = createSignal(false);
   const [isDragging, setIsDragging] = createSignal(false);
+
+  const paramCount = () => Math.min(Object.keys(props.node.params).length, 3);
+  const nodeHeight = () => 90 + paramCount() * 14;
 
   const color = () => NODE_COLORS[props.node.type] || NODE_COLORS.default;
 
@@ -73,7 +86,7 @@ export function BlockNode(props: BlockNodeProps) {
 
     props.onPortClick?.(props.node.id, "input", {
       x: props.node.position.x + 10,
-      y: props.node.position.y + 50,
+      y: props.node.position.y + nodeHeight() / 2,
     });
   };
 
@@ -83,7 +96,7 @@ export function BlockNode(props: BlockNodeProps) {
 
     props.onPortClick?.(props.node.id, "output", {
       x: props.node.position.x + 130,
-      y: props.node.position.y + 50,
+      y: props.node.position.y + nodeHeight() / 2,
     });
   };
 
@@ -99,7 +112,7 @@ export function BlockNode(props: BlockNodeProps) {
       {/* Shadow */}
       <rect
         width={140}
-        height={90}
+        height={nodeHeight()}
         rx={12}
         class={shadowStyle}
         transform="translate(0, 4)"
@@ -108,7 +121,7 @@ export function BlockNode(props: BlockNodeProps) {
       {/* Main body */}
       <rect
         width={140}
-        height={90}
+        height={nodeHeight()}
         rx={12}
         class={cx(
           nodeBodyStyle,
@@ -152,11 +165,9 @@ export function BlockNode(props: BlockNodeProps) {
         class={portGroupStyle}
         onClick={handleInputClick}
       >
-        {/* Invisible hit area */}
-        <circle cx={10} cy={50} r={16} fill="transparent" />
-        {/* Visible port */}
-        <circle cx={10} cy={50} r={8} class={inputPortStyle} />
-        <circle cx={10} cy={50} r={4} fill="#16a34a" />
+        <circle cx={10} cy={nodeHeight() / 2} r={16} fill="transparent" />
+        <circle cx={10} cy={nodeHeight() / 2} r={8} class={inputPortStyle} />
+        <circle cx={10} cy={nodeHeight() / 2} r={4} fill="#16a34a" />
       </g>
 
       {/* Output port */}
@@ -164,19 +175,25 @@ export function BlockNode(props: BlockNodeProps) {
         class={portGroupStyle}
         onClick={handleOutputClick}
       >
-        {/* Invisible hit area */}
-        <circle cx={130} cy={50} r={16} fill="transparent" />
-        {/* Visible port */}
-        <circle cx={130} cy={50} r={8} class={outputPortStyle} />
-        <circle cx={130} cy={50} r={4} fill="#dc2626" />
+        <circle cx={130} cy={nodeHeight() / 2} r={16} fill="transparent" />
+        <circle cx={130} cy={nodeHeight() / 2} r={8} class={outputPortStyle} />
+        <circle cx={130} cy={nodeHeight() / 2} r={4} fill="#dc2626" />
       </g>
 
       {/* Param display (optional) */}
-      <Show when={Object.keys(props.node.params).length > 0}>
-        <text x={70} y={70} class={paramStyle}>
-          {Object.entries(props.node.params)[0]?.[0]}:
-          {Object.entries(props.node.params)[0]?.[1] as string}
-        </text>
+      <Show when={paramCount() > 0}>
+        <foreignObject x={10} y={35} width={120} height={nodeHeight() - 40} style={{ "pointer-events":"none" }}>
+          <div class={paramsContainerStyle}>
+            <For each={Object.entries(props.node.params).slice(0, 3)}>
+              {([key, value]) => (
+                <div class={paramItemStyle}>
+                  <span class={paramKeyStyle}>{key}:</span>
+                  <span class={paramValueStyle}>{formatParamValue(value as string | number)}</span>
+                </div>
+              )}
+            </For>
+          </div>
+        </foreignObject>
       </Show>
     </g>
   );
@@ -233,12 +250,6 @@ const deleteButtonStyle = css({
   },
 });
 
-const deleteCircleStyle = css({
-  fill: "#ef4444",
-  stroke: "#dc2626",
-  strokeWidth: "2",
-});
-
 const deleteTextStyle = css({
   fill: "white",
   fontSize: "18px",
@@ -259,14 +270,39 @@ const outputPortStyle = css({
   strokeWidth: "2",
 });
 
-const paramStyle = css({
-  fill: "#9ca3af",
-  fontSize: "11px",
-  textAnchor: "middle",
-  userSelect: "none",
-});
-
 const portGroupStyle = css({
   cursor: "pointer",
   transition: "transform 0.2s",
+});
+
+const paramsContainerStyle = css({
+  display: "flex",
+  flexDirection: "column",
+  gap: "4px",
+  padding: "6px",
+  fontSize: "10px",
+  fontFamily: "monospace",
+  alignItems: "center",
+  justifyContent: "center",
+  height: "100%",
+});
+
+const paramItemStyle = css({
+  display: "flex",
+  gap: "4px",
+  alignItems: "baseline",
+  justifyContent: "center",
+  width: "100%",
+});
+
+const paramKeyStyle = css({
+  color: "#6b7280",
+  fontSize: "9px",
+  textTransform: "lowercase",
+});
+
+const paramValueStyle = css({
+  color: "#9ca3af",
+  fontWeight: "600",
+  fontSize: "10px",
 });

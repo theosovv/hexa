@@ -1,79 +1,67 @@
 import { css } from "@/styled-system/css";
+import { token } from "@/styled-system/tokens";
 
-export const headerStyle = css({
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "space-between",
-  margin: "48px 0 32px 0",
+export const pageStyle = css({
+  maxWidth: "1280px",
+  margin: "0 auto",
+  minHeight: "100vh",
 });
 
 export const titleStyle = css({
-  fontSize: "48px",
-  fontWeight: "bold",
+  fontSize: token("fontSizes.4xl"),
+  fontWeight: "800",
   margin: 0,
-});
-
-export const userCardStyle = css({
-  display: "flex",
-  alignItems: "center",
-  gap: "12px",
-});
-
-export const userInfoStyle = css({
-  display: "flex",
-  flexDirection: "column",
-  gap: "4px",
-  marginRight: "auto",
+  background: "linear-gradient(135deg, #8b5cf6 0%, #667eea 100%)",
+  WebkitTextFillColor: "transparent",
+  backgroundClip: "text",
+  letterSpacing: "-0.02em",
 });
 
 export const nameStyle = css({
-  fontSize: "14px",
+  fontSize: token("fontSizes.sm"),
   fontWeight: "600",
-  color: "#1a202c",
+  color: token("colors.text.primary"),
 });
 
 export const storageStyle = css({
-  fontSize: "12px",
-  color: "#718096",
-});
-
-export const tracksHeaderStyle = css({
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "space-between",
-  marginBottom: "24px",
+  fontSize: token("fontSizes.xs"),
+  color: token("colors.text.secondary"),
 });
 
 export const sectionTitleStyle = css({
-  fontSize: "24px",
+  fontSize: token("fontSizes.2xl"),
   fontWeight: "700",
   margin: 0,
+  color: token("colors.text.primary"),
 });
 
 export const tracksGridStyle = css({
   display: "grid",
   gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))",
-  gap: "24px",
-  marginBottom: "48px",
-});
-
-export const loadingStyle = css({
-  display: "flex",
-  justifyContent: "center",
-  padding: "64px",
+  gap: token("spacing.lg"),
 });
 
 export const emptyStyle = css({
-  display: "flex",
-  flexDirection: "column",
-  alignItems: "center",
-  gap: "24px",
-  padding: "64px",
   textAlign: "center",
+  background: token("colors.surface.primary"),
+  border: `2px dashed ${token("colors.border.primary")}`,
+  borderRadius: token("radii.xl"),
+});
+
+export const emptyIconStyle = css({
+  fontSize: token("fontSizes.5xl"),
+  opacity: 0.3,
 });
 
 export const emptyTextStyle = css({
-  fontSize: "18px",
-  color: "#718096",
+  fontSize: token("fontSizes.xl"),
+  fontWeight: "600",
+  color: token("colors.text.primary"),
+  margin: 0,
+});
+
+export const emptySubtextStyle = css({
+  fontSize: token("fontSizes.sm"),
+  color: token("colors.text.secondary"),
   margin: 0,
 });
