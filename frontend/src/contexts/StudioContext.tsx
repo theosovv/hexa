@@ -61,6 +61,9 @@ export const StudioProvider: ParentComponent = (props) => {
         if (block.type === "sampler" && "stop" in block) {
           (block as any).stop();
         }
+        if (block.type === "sequencer" && "stop" in block) {
+          (block as any).stop();
+        }
       });
 
       setIsPlaying(false);
@@ -69,6 +72,9 @@ export const StudioProvider: ParentComponent = (props) => {
 
       Array.from(audioGraph.blocks.values()).forEach((block) => {
         if (block.type === "oscillator" && "start" in block) {
+          (block as any).start();
+        }
+        if (block.type === "sequencer" && "start" in block) {
           (block as any).start();
         }
       });
@@ -235,6 +241,17 @@ export const StudioProvider: ParentComponent = (props) => {
       delay: { time: 0.25, feedback: 0.3, mix: 0.5 },
       reverb: { size: "2.0", decay: 3.0, mix: 0.3 },
       mixer: { channels: 4, master: 1 },
+      sequencer: {
+        bpm: 120,
+        stepsPerBar: 16,
+        swing: 0,
+        playing: false,
+        steps: Array.from({ length: 16 }, (_, index) => ({
+          active: index % 4 === 0,
+          velocity: 1,
+          probability: 1,
+        })),
+      },
       master: { volume: 0.8 },
     };
 

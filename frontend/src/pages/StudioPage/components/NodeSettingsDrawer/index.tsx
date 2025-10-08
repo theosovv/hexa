@@ -1,15 +1,18 @@
 import { Show, Switch, Match } from "solid-js";
 
 import { placeholderStyle, settingsStyle } from "./styles";
+
+import type { SequencerStep } from "@/audio/blocks/SequencerBlock";
 import { useStudio } from "@/contexts/StudioContext";
-import { Drawer } from "@/uikit";
-import { OscillatorSettings } from "@/features/OscillatorSettings";
-import { FilterSettings } from "@/features/FilterSettings";
 import { DelaySettings } from "@/features/DelaySettings";
-import { ReverbSettings } from "@/features/ReverbSettings";
+import { FilterSettings } from "@/features/FilterSettings";
 import { MasterSettings } from "@/features/MasterSettings";
-import { SamplerSettings } from "@/features/SamplerSettings";
 import { MixerSettings } from "@/features/MixerSettings";
+import { OscillatorSettings } from "@/features/OscillatorSettings";
+import { ReverbSettings } from "@/features/ReverbSettings";
+import { SamplerSettings } from "@/features/SamplerSettings";
+import { SequencerSettings } from "@/features/SequencerSettings";
+import { Drawer } from "@/uikit";
 
 export function NodeSettingsDrawer() {
   const studio = useStudio();
@@ -23,7 +26,7 @@ export function NodeSettingsDrawer() {
     studio.selectNode(null);
   };
 
-  const updateParam = (key: string, value: number | string | boolean) => {
+  const updateParam = (key: string, value: number | string | boolean | SequencerStep[]) => {
     const node = selectedNode();
     if (!node) return;
 
@@ -66,6 +69,10 @@ export function NodeSettingsDrawer() {
 
             <Match when={selectedNode()!.type === "mixer"}>
               <MixerSettings node={selectedNode()!} onUpdate={updateParam} />
+            </Match>
+
+            <Match when={selectedNode()!.type === "sequencer"}>
+              <SequencerSettings node={selectedNode()!} onUpdate={updateParam} />
             </Match>
 
             <Match when={selectedNode()!.type === "master"}>

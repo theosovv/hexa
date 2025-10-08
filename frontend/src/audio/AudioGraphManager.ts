@@ -6,6 +6,7 @@ import { MixerBlock } from "./blocks/MixerBlock";
 import { OscillatorBlock } from "./blocks/OscillatorBlock";
 import { ReverbBlock } from "./blocks/ReverbBlock";
 import { SamplerBlock } from "./blocks/SamplerBlock";
+import { SequencerBlock, type SequencerStep } from "./blocks/SequencerBlock";
 import type { AudioBlockType } from "./types";
 
 export class AudioGraphManager {
@@ -33,6 +34,9 @@ export class AudioGraphManager {
         break;
       case "sampler":
         block = new SamplerBlock(id, params);
+        break;
+      case "sequencer":
+        block = new SequencerBlock(id, params);
         break;
       case "master":
         block = new MasterOutBlock(id, params);
@@ -77,6 +81,10 @@ export class AudioGraphManager {
     fromBlock.connect(toBlock, connectionId, targetIndex);
     this.connections.set(connectionId, { from: fromId, to: toId });
 
+    if (fromBlock instanceof SequencerBlock) {
+      fromBlock.connectTarget(connectionId, toBlock);
+    }
+
     return connectionId;
   }
 
@@ -90,6 +98,10 @@ export class AudioGraphManager {
 
     if (fromBlock && toBlock) {
       fromBlock.disconnect(toBlock, connectionId);
+
+      if (fromBlock instanceof SequencerBlock) {
+        fromBlock.disconnectTarget(connectionId);
+      }
     }
 
     this.connections.delete(connectionId);
@@ -99,7 +111,7 @@ export class AudioGraphManager {
     return this.blocks.get(id);
   }
 
-  updateBlockParam(id: string, key: string, value: number | string | boolean) {
+  updateBlockParam(id: string, key: string, value: number | string | boolean | SequencerStep[]) {
     const block = this.blocks.get(id);
 
     if (block) {

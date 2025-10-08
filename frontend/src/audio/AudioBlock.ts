@@ -1,4 +1,5 @@
 import { AudioContextManager } from "./AudioContextManager";
+import type { SequencerStep } from "./blocks/SequencerBlock";
 import type { AudioBlockParamPrimitive, AudioBlockParams } from "./types";
 
 export abstract class AudioBlock {
@@ -22,7 +23,7 @@ export abstract class AudioBlock {
   }
 
   abstract initialize(): void;
-  abstract updateParam(key: string, value: AudioBlockParamPrimitive | AudioBlockParamPrimitive[] | Record<string, AudioBlockParamPrimitive>): void;
+  abstract updateParam(key: string, value: SequencerStep[] | AudioBlockParamPrimitive | AudioBlockParamPrimitive[] | Record<string, AudioBlockParamPrimitive>): void;
 
   connect(target: AudioBlock, connectionId: string, targetIndex?: number) {
     const destination = target.registerInputConnection(connectionId, this, targetIndex);
