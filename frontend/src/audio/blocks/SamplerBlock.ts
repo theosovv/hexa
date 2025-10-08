@@ -117,9 +117,10 @@ export class SamplerBlock extends AudioBlock {
   }
 
   trigger(options?: { velocity?: number }) {
-    if (!this.triggeredMode) return;
+    const velocity = this.triggeredMode
+      ? Math.max(0, Math.min(1, options?.velocity ?? 1))
+      : 1;
 
-    const velocity = Math.max(0, Math.min(1, options?.velocity ?? 1));
     this.play(0, 0, velocity);
   }
 
