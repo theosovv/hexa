@@ -1,5 +1,5 @@
 import { AudioContextManager } from "./AudioContextManager";
-import type { AudioBlockParams } from "./types";
+import type { AudioBlockParamPrimitive, AudioBlockParams } from "./types";
 
 export abstract class AudioBlock {
   protected audioContext: AudioContext;
@@ -22,18 +22,28 @@ export abstract class AudioBlock {
   }
 
   abstract initialize(): void;
-  abstract updateParam(key: string, value: number | string | boolean): void;
+  abstract updateParam(key: string, value: AudioBlockParamPrimitive | AudioBlockParamPrimitive[] | Record<string, AudioBlockParamPrimitive>): void;
 
-  connect(target: AudioBlock) {
-    this.outputNode.connect(target.inputNode);
+  connect(target: AudioBlock, connectionId: string, targetIndex?: number) {
+    const destination = target.registerInputConnection(connectionId, this, targetIndex);
+    this.outputNode.connect(destination);
   }
 
-  disconnect(target?: AudioBlock) {
+  disconnect(target?: AudioBlock, connectionId?: string) {
     if (target) {
-      this.outputNode.disconnect(target.inputNode);
+      this.outputNode.disconnect(target.registerInputConnection(connectionId ?? "", this));
+      target.releaseInputConnection(connectionId ?? "");
     } else {
       this.outputNode.disconnect();
     }
+  }
+
+  registerInputConnection(_connectionId: string, _fromBlock: AudioBlock, _targetIndex?: number): AudioNode {
+    return this.inputNode;
+  }
+
+  releaseInputConnection(_connectionId: string): void {
+    // для большинства блоков ничего делать не нужно
   }
 
   destroy() {

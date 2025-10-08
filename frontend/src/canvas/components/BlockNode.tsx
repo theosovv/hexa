@@ -1,3 +1,4 @@
+/* eslint-disable solid/reactivity */
 import { For, Show } from "solid-js";
 import { createSignal } from "solid-js";
 
@@ -10,7 +11,7 @@ interface BlockNodeProps {
   dragHandler: DragHandler;
   onMove: (id: string, delta: Point) => void;
   onDelete?: (id: string) => void;
-  onPortClick?: (nodeId: string, port: "input" | "output", position: Point) => void;
+  onPortClick?: (nodeId: string, port: "input" | "output", position: Point, pointIndex?: number) => void;
   onDoubleClick?: (nodeId: string) => void;
 }
 
@@ -19,6 +20,7 @@ const NODE_COLORS: Record<string, string> = {
   filter: "#3b82f6",
   delay: "#10b981",
   reverb: "#f59e0b",
+  mixer: "#f97316",
   master: "#ef4444",
   default: "#6b7280",
 };
@@ -38,9 +40,27 @@ export function BlockNode(props: BlockNodeProps) {
   const [isDragging, setIsDragging] = createSignal(false);
 
   const paramCount = () => Math.min(Object.keys(props.node.params).length, 3);
-  const nodeHeight = () => 90 + paramCount() * 14;
+  const nodeHeight = () => {
+    const base = 90;
+    const paramsHeight = paramCount() * 14;
+    const channelHeight = inputCount() > 1 ? inputCount() * 26 + 30 : 0;
+
+    return Math.max(base + paramsHeight, 70 + channelHeight);
+  };
 
   const color = () => NODE_COLORS[props.node.type] || NODE_COLORS.default;
+
+  const mixerChannels = () => {
+    if (props.node.type !== "mixer") return 1;
+
+    const raw = Number(props.node.params.channels ?? 4);
+
+    if (!Number.isFinite(raw)) return 1;
+
+    return Math.max(1, Math.round(raw));
+  };
+
+  const inputCount = () => mixerChannels();
 
   const handleMouseDown = (e: MouseEvent) => {
     e.stopPropagation();
@@ -81,15 +101,18 @@ export function BlockNode(props: BlockNodeProps) {
     props.onDelete?.(props.node.id);
   };
 
-  const handleInputClick = (e: MouseEvent) => {
+  const handleInputClick = (portY: number, portIndex: number) => (e: MouseEvent) => {
     e.stopPropagation();
-
-    props.onPortClick?.(props.node.id, "input", {
-      x: props.node.position.x + 10,
-      y: props.node.position.y + nodeHeight() / 2,
-    });
+    props.onPortClick?.(
+      props.node.id,
+      "input",
+      {
+        x: props.node.position.x + 10,
+        y: props.node.position.y + portY,
+      },
+      portIndex,
+    );
   };
-
 
   const handleOutputClick = (e: MouseEvent) => {
     e.stopPropagation();
@@ -99,6 +122,24 @@ export function BlockNode(props: BlockNodeProps) {
       y: props.node.position.y + nodeHeight() / 2,
     });
   };
+
+  const inputPorts = () => {
+    const count = inputCount();
+    const positions = [];
+    const gap = nodeHeight() / (count + 1);
+
+    for (let i = 0; i < count; i++) {
+      positions.push({
+        key: `input-${i}`,
+        y: gap * (i + 1),
+      });
+    }
+
+    return positions;
+  };
+
+  const outputOffsetX = 140 - 16;
+  const outputOffsetY = nodeHeight() / 2 - 8;
 
   return (
     <g
@@ -161,23 +202,28 @@ export function BlockNode(props: BlockNodeProps) {
       </Show>
 
       {/* Input port */}
-      <g
-        class={portGroupStyle}
-        onClick={handleInputClick}
-      >
-        <circle cx={10} cy={nodeHeight() / 2} r={16} fill="transparent" />
-        <circle cx={10} cy={nodeHeight() / 2} r={8} class={inputPortStyle} />
-        <circle cx={10} cy={nodeHeight() / 2} r={4} fill="#16a34a" />
-      </g>
+      <For each={inputPorts()}>
+        {(port, index) => (
+          <g
+            class={portGroupStyle}
+            data-port-index={index()}
+            onClick={handleInputClick(port.y, index())}
+            transform={`translate(0, ${port.y})`}
+          >
+            <circle cx={8} cy={8} r={8} class={inputPortStyle} />
+            <circle cx={8} cy={8} r={4} fill="#14532d" />
+          </g>
+        )}
+      </For>
 
       {/* Output port */}
       <g
         class={portGroupStyle}
         onClick={handleOutputClick}
+        transform={`translate(${outputOffsetX}, ${outputOffsetY})`}
       >
-        <circle cx={130} cy={nodeHeight() / 2} r={16} fill="transparent" />
-        <circle cx={130} cy={nodeHeight() / 2} r={8} class={outputPortStyle} />
-        <circle cx={130} cy={nodeHeight() / 2} r={4} fill="#dc2626" />
+        <circle cx={8} cy={8} r={8} class={outputPortStyle} />
+        <circle cx={8} cy={8} r={4} fill="#7f1d1d" />
       </g>
 
       {/* Param display (optional) */}

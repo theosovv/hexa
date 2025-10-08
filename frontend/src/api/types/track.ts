@@ -21,6 +21,7 @@ export interface GraphData {
     id: string;
     from: string;
     to: string;
+    to_port_index?: number;
   }>;
 }
 

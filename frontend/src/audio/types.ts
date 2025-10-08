@@ -1,6 +1,12 @@
+export type AudioBlockParamPrimitive = number | string | boolean;
+
 export interface AudioBlockParams {
-  [key: string]: number | string | boolean;
+  [key: string]:
+    | AudioBlockParamPrimitive
+    | AudioBlockParamPrimitive[]
+    | Record<string, AudioBlockParamPrimitive>;
 }
+
 
 export type AudioBlockType =
   | "oscillator"
@@ -8,4 +14,5 @@ export type AudioBlockType =
   | "delay"
   | "reverb"
   | "sampler"
+  | "mixer"
   | "master";

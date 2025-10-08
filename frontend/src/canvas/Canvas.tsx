@@ -18,12 +18,44 @@ export function Canvas() {
   const dragHandler = new DragHandler();
   const connectionManager = new ConnectionManager();
 
-  const getNodeHeight = (node: NodeData) => {
-    const paramCount = Math.min(Object.keys(node.params).length, 3);
+  const getMixerChannels = (node: NodeData) => {
+    if (node.type !== "mixer") return 1;
 
-    return 90 + paramCount * 14;
+    const raw = Number(node.params.channels ?? 4);
+    if (!Number.isFinite(raw)) return 1;
+
+    return Math.max(1, Math.round(raw));
   };
 
+  const getNodeHeight = (node: NodeData) => {
+    const paramCount = Math.min(Object.keys(node.params).length, 3);
+    const baseHeight = 90 + paramCount * 14;
+
+    if (node.type !== "mixer") {
+      return baseHeight;
+    }
+
+    const channels = getMixerChannels(node);
+    const channelsHeight = channels * 26 + 30;
+
+    return Math.max(baseHeight, 70 + channelsHeight);
+  };
+
+  const getInputPortY = (node: NodeData, portIndex?: number) => {
+    const height = getNodeHeight(node);
+
+    if (node.type !== "mixer") {
+      return node.position.y + height / 2;
+    }
+
+    const channels = getMixerChannels(node);
+    const index = typeof portIndex === "number"
+      ? Math.min(Math.max(portIndex, 0), channels - 1)
+      : 0;
+    const gap = height / (channels + 1);
+
+    return node.position.y + gap * (index + 1);
+  };
 
   const handleCanvasMouseDown = (e: MouseEvent) => {
     if (e.button === 1 || (e.button === 0 && e.shiftKey)) {
@@ -67,7 +99,46 @@ export function Canvas() {
     studio.selectNode(nodeId);
   };
 
-  const handlePortClick = (nodeId: string, port: "input" | "output", position: Point) => {
+  const resolvePortIndex = (
+    targetNodeId: string,
+    requestedIndex: number | undefined,
+  ): number | undefined => {
+    const targetNode = studio.canvasStore.nodes().get(targetNodeId);
+    if (!targetNode) return requestedIndex;
+
+    const maxChannels = getMixerChannels(targetNode);
+
+    const occupied = new Set<number>();
+    studio.canvasStore.connections().forEach((conn) => {
+      if (conn.to === targetNodeId && typeof conn.toPortIndex === "number") {
+        occupied.add(conn.toPortIndex);
+      }
+    });
+
+    if (
+      typeof requestedIndex === "number" &&
+      requestedIndex >= 0 &&
+      requestedIndex < maxChannels &&
+      !occupied.has(requestedIndex)
+    ) {
+      return requestedIndex;
+    }
+
+    for (let i = 0; i < maxChannels; i++) {
+      if (!occupied.has(i)) {
+        return i;
+      }
+    }
+
+    return Math.min(maxChannels - 1, Math.max(0, requestedIndex ?? 0));
+  };
+
+  const handlePortClick = (
+    nodeId: string,
+    port: "input" | "output",
+    position: Point,
+    portIndex?: number,
+  ) => {
     if (port === "output") {
       connectionManager.startConnection(nodeId, position);
 
@@ -84,10 +155,19 @@ export function Canvas() {
 
       const onUp = (e: MouseEvent) => {
         const target = e.target as SVGElement;
-        const targetNodeId = target.closest("g[data-node-id]")?.getAttribute("data-node-id");
+        const targetGroup = target.closest("g[data-node-id]");
+        const targetNodeId = targetGroup?.getAttribute("data-node-id");
 
         if (targetNodeId && targetNodeId !== nodeId) {
-          studio.addConnection(nodeId, targetNodeId);
+          const portElement = target.closest("[data-port-index]") as SVGElement | null;
+          const detectedIndex =
+            portIndex ??
+            (portElement
+              ? Number(portElement.getAttribute("data-port-index"))
+              : undefined);
+          const assignedIndex = resolvePortIndex(targetNodeId, detectedIndex);
+
+          studio.addConnection(nodeId, targetNodeId, assignedIndex);
         }
 
         connectionManager.cancelConnection();
@@ -121,6 +201,11 @@ export function Canvas() {
     e.preventDefault();
     e.dataTransfer!.dropEffect = "copy";
   };
+
+  const getOutputPortPosition = (node: NodeData) => ({
+    x: node.position.x + 130,
+    y: node.position.y + getNodeHeight(node) / 2,
+  });
 
   return (
     <svg
@@ -161,24 +246,29 @@ export function Canvas() {
                   {(() => {
                     const from = fromNode()!;
                     const to = toNode()!;
-                    const fromHeight = getNodeHeight(from);
-                    const toHeight = getNodeHeight(to);
 
-                    const fromPos = () => ({
-                      x: from.position.x + 130,
-                      y: from.position.y + fromHeight / 2,
-                    });
+                    const inboundConnections = Array.from(
+                      studio.canvasStore.connections().values(),
+                    ).filter((c) => c.to === to.id);
 
-                    const toPos = () => ({
+                    const fallbackIndex = inboundConnections.findIndex(
+                      (c) => c.id === conn.id,
+                    );
+
+                    const fromPos = getOutputPortPosition(from);
+                    const toPos = {
                       x: to.position.x + 10,
-                      y: to.position.y + toHeight / 2,
-                    });
+                      y: getInputPortY(
+                        to,
+                        conn.toPortIndex ?? fallbackIndex,
+                      ),
+                    };
 
                     return (
                       <Connection
                         id={conn.id}
-                        from={fromPos()}
-                        to={toPos()}
+                        from={fromPos}
+                        to={toPos}
                         onDelete={studio.removeConnection}
                       />
                     );

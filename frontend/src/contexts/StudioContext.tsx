@@ -26,7 +26,7 @@ interface StudioContextType {
   createNewTrack: (title: string) => Promise<Track>;
   addNode: (type: AudioBlockType, position: { x: number; y: number }) => void;
   removeNode: (id: string) => void;
-  addConnection: (fromId: string, toId: string) => void;
+  addConnection: (fromId: string, toId: string, toPortIndex?: number) => void;
   removeConnection: (id: string) => void;
   updateTrackMeta: (meta: { title?: string; bpm?: number }) => Promise<void>;
 }
@@ -164,7 +164,7 @@ export const StudioProvider: ParentComponent = (props) => {
       // Recreate connections
       connections.forEach((conn) => {
         canvasStore.addConnection(conn);
-        audioGraph.connect(conn.from, conn.to);
+        audioGraph.connect(conn.from, conn.to, conn.toPortIndex);
       });
 
       console.log("✓ Track loaded:", track.title);
@@ -234,6 +234,7 @@ export const StudioProvider: ParentComponent = (props) => {
       filter: { cutoff: "1kHz", type: "lowpass", q: 1, gain: 0 },
       delay: { time: 0.25, feedback: 0.3, mix: 0.5 },
       reverb: { size: "2.0", decay: 3.0, mix: 0.3 },
+      mixer: { channels: 4, master: 1 },
       master: { volume: 0.8 },
     };
 
@@ -245,7 +246,7 @@ export const StudioProvider: ParentComponent = (props) => {
     };
 
     canvasStore.addNode(nodeData);
-    audioGraph.createBlock(id, type);
+    audioGraph.createBlock(id, type, nodeData.params);
 
     if (isPlaying() && type === "oscillator") {
       const block = audioGraph.getBlock(id);
@@ -264,8 +265,8 @@ export const StudioProvider: ParentComponent = (props) => {
     audioGraph.removeBlock(id);
   };
 
-  const addConnection = (fromId: string, toId: string) => {
-    const connectionId = audioGraph.connect(fromId, toId);
+  const addConnection = (fromId: string, toId: string, toPortIndex?: number) => {
+    const connectionId = audioGraph.connect(fromId, toId, toPortIndex);
 
     if (connectionId) {
       const conn: ConnectionData = {
@@ -274,6 +275,7 @@ export const StudioProvider: ParentComponent = (props) => {
         to: toId,
         fromPort: "output",
         toPort: "input",
+        toPortIndex,
       };
       canvasStore.addConnection(conn);
     }

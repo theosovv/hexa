@@ -49,6 +49,14 @@ const BLOCKS: BlockDefinition[] = [
     category: "sources",
   },
   {
+    type: "mixer",
+    label: "Mixer",
+    icon: "🎚️",
+    color: token("colors.accent.yellow"),
+    description: "Blend multiple signals",
+    category: "effects",
+  },
+  {
     type: "filter",
     label: "Filter",
     icon: "🎛️",
