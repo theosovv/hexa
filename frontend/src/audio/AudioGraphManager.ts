@@ -2,6 +2,7 @@ import type { AudioBlock } from "./AudioBlock";
 import { DelayBlock } from "./blocks/DelayBlock";
 import { FilterBlock } from "./blocks/FilterBlock";
 import { MasterOutBlock } from "./blocks/MasterOutBlock";
+import { MixerBlock } from "./blocks/MixerBlock";
 import { OscillatorBlock } from "./blocks/OscillatorBlock";
 import { ReverbBlock } from "./blocks/ReverbBlock";
 import { SamplerBlock } from "./blocks/SamplerBlock";
@@ -17,6 +18,9 @@ export class AudioGraphManager {
     switch (type) {
       case "oscillator":
         block = new OscillatorBlock(id, params);
+        break;
+      case "mixer":
+        block = new MixerBlock(id, params);
         break;
       case "filter":
         block = new FilterBlock(id, params);
@@ -58,7 +62,7 @@ export class AudioGraphManager {
     }
   }
 
-  connect(fromId: string, toId: string): string | null {
+  connect(fromId: string, toId: string, targetIndex?: number): string | null {
     const fromBlock = this.blocks.get(fromId);
     const toBlock = this.blocks.get(toId);
 
@@ -68,9 +72,9 @@ export class AudioGraphManager {
       return null;
     }
 
-    const connectionId = `${fromId}-${toId}`;
+    const connectionId = `${fromId}-${toId}-${crypto.randomUUID()}`;
 
-    fromBlock.connect(toBlock);
+    fromBlock.connect(toBlock, connectionId, targetIndex);
     this.connections.set(connectionId, { from: fromId, to: toId });
 
     return connectionId;
@@ -85,7 +89,7 @@ export class AudioGraphManager {
     const toBlock = this.blocks.get(conn.to);
 
     if (fromBlock && toBlock) {
-      fromBlock.disconnect(toBlock);
+      fromBlock.disconnect(toBlock, connectionId);
     }
 
     this.connections.delete(connectionId);

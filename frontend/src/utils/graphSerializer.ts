@@ -16,6 +16,7 @@ export function serializeGraph(
       id: conn.id,
       from: conn.from,
       to: conn.to,
+      to_port_index: conn.toPortIndex,
     })),
   };
 }
@@ -43,6 +44,7 @@ export function deserializeGraph(graphData: GraphData): {
       to: conn.to,
       fromPort: "output",
       toPort: "input",
+      toPortIndex: conn.to_port_index,
     });
   });
 

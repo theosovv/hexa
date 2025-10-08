@@ -9,6 +9,7 @@ import { DelaySettings } from "@/features/DelaySettings";
 import { ReverbSettings } from "@/features/ReverbSettings";
 import { MasterSettings } from "@/features/MasterSettings";
 import { SamplerSettings } from "@/features/SamplerSettings";
+import { MixerSettings } from "@/features/MixerSettings";
 
 export function NodeSettingsDrawer() {
   const studio = useStudio();
@@ -61,6 +62,10 @@ export function NodeSettingsDrawer() {
 
             <Match when={selectedNode()!.type === "reverb"}>
               <ReverbSettings node={selectedNode()!} onUpdate={updateParam} />
+            </Match>
+
+            <Match when={selectedNode()!.type === "mixer"}>
+              <MixerSettings node={selectedNode()!} onUpdate={updateParam} />
             </Match>
 
             <Match when={selectedNode()!.type === "master"}>

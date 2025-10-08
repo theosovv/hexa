@@ -16,6 +16,7 @@ export interface ConnectionData {
   to: string;
   fromPort: "output";
   toPort: "input";
+  toPortIndex?: number;
 }
 
 export interface Viewport {
