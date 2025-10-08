@@ -18,6 +18,17 @@ type RefreshToken struct {
 	RevokedAt pgtype.Timestamp `json:"revoked_at"`
 }
 
+type ReverbImpulse struct {
+	ID        uuid.UUID        `json:"id"`
+	UserID    pgtype.UUID      `json:"user_id"`
+	TrackID   pgtype.UUID      `json:"track_id"`
+	Filename  string           `json:"filename"`
+	FileSize  int64            `json:"file_size"`
+	S3Key     string           `json:"s3_key"`
+	MimeType  pgtype.Text      `json:"mime_type"`
+	CreatedAt pgtype.Timestamp `json:"created_at"`
+}
+
 type Sample struct {
 	ID        uuid.UUID        `json:"id"`
 	UserID    pgtype.UUID      `json:"user_id"`
