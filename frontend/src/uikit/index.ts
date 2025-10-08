@@ -10,3 +10,5 @@ export * from "./icons";
 export { Horizontal, Vertical } from "./Stack";
 export { Select } from "./Select";
 export { Input } from "./Input";
+export { Collapsible } from "./Collapsible";
+export { FileUpload } from "./FileUpload";

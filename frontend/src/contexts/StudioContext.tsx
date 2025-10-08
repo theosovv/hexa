@@ -1,16 +1,16 @@
+import { useNavigate, useParams } from "@solidjs/router";
 import { createContext, createEffect, createSignal, onCleanup, onMount, useContext, type ParentComponent } from "solid-js";
 
+import { apiClient } from "../api/client";
 import type { Track } from "../api/types/track";
 import { AudioContextManager } from "../audio/AudioContextManager";
 import { AudioGraphManager } from "../audio/AudioGraphManager";
 import type { AudioBlockType } from "../audio/types";
 import { createCanvasStore } from "../canvas/store";
 import type { ConnectionData, NodeData } from "../canvas/types";
-import { KeyboardShortcutManager } from "../utils/keyboardShortcuts";
-import { useNavigate, useParams } from "@solidjs/router";
-import { deserializeGraph, serializeGraph } from "../utils/graphSerializer";
-import { apiClient } from "../api/client";
 import { debounce } from "../utils/debounce";
+import { deserializeGraph, serializeGraph } from "../utils/graphSerializer";
+import { KeyboardShortcutManager } from "../utils/keyboardShortcuts";
 
 interface StudioContextType {
   canvasStore: ReturnType<typeof createCanvasStore>;
@@ -56,6 +56,13 @@ export const StudioProvider: ParentComponent = (props) => {
   const togglePlayback = () => {
     if (isPlaying()) {
       audioManager.suspend();
+
+      Array.from(audioGraph.blocks.values()).forEach((block) => {
+        if (block.type === "sampler" && "stop" in block) {
+          (block as any).stop();
+        }
+      });
+
       setIsPlaying(false);
     } else {
       audioManager.resume();
@@ -66,11 +73,19 @@ export const StudioProvider: ParentComponent = (props) => {
         }
       });
 
+      Array.from(audioGraph.blocks.values()).forEach((block) => {
+        if (block.type === "sampler" && "play" in block) {
+          const samplerBlock = block as any;
+          if (samplerBlock.buffer && samplerBlock.params.loop) {
+            samplerBlock.play();
+          }
+        }
+      });
+
       setIsPlaying(true);
     }
   };
 
-  // Create new track
   const createNewTrack = async (title: string): Promise<Track> => {
     const graphData = serializeGraph(
       canvasStore.nodes(),
@@ -215,6 +230,7 @@ export const StudioProvider: ParentComponent = (props) => {
 
     const defaultParams: Record<string, any> = {
       oscillator: { freq: "440Hz", type: "sine", gain: 0.5, detune: 0 },
+      sampler: { gain: 0.8, playbackRate: 1.0, loop: false, sampleUrl: "" },
       filter: { cutoff: "1kHz", type: "lowpass", q: 1, gain: 0 },
       delay: { time: 0.25, feedback: 0.3, mix: 0.5 },
       reverb: { size: "2.0", decay: 3.0, mix: 0.3 },

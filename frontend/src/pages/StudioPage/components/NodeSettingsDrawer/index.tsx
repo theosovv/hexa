@@ -8,6 +8,7 @@ import { FilterSettings } from "@/features/FilterSettings";
 import { DelaySettings } from "@/features/DelaySettings";
 import { ReverbSettings } from "@/features/ReverbSettings";
 import { MasterSettings } from "@/features/MasterSettings";
+import { SamplerSettings } from "@/features/SamplerSettings";
 
 export function NodeSettingsDrawer() {
   const studio = useStudio();
@@ -21,7 +22,7 @@ export function NodeSettingsDrawer() {
     studio.selectNode(null);
   };
 
-  const updateParam = (key: string, value: number | string) => {
+  const updateParam = (key: string, value: number | string | boolean) => {
     const node = selectedNode();
     if (!node) return;
 
@@ -44,6 +45,10 @@ export function NodeSettingsDrawer() {
           <Switch>
             <Match when={selectedNode()!.type === "oscillator"}>
               <OscillatorSettings node={selectedNode()!} onUpdate={updateParam} />
+            </Match>
+
+            <Match when={selectedNode()!.type === "sampler"}>
+              <SamplerSettings node={selectedNode()!} onUpdate={updateParam} />
             </Match>
 
             <Match when={selectedNode()!.type === "filter"}>
