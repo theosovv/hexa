@@ -21,7 +21,7 @@ export class ConnectionManager {
   startConnection(nodeId: string, position: Point) {
     this.setTempConnection({
       from: nodeId,
-      fromPos: position,
+      fromPos: { ...position, y: position.y + 8 },
       toPos: position,
     });
   }

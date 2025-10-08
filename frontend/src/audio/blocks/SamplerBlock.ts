@@ -5,7 +5,9 @@ export class SamplerBlock extends AudioBlock {
   private buffer: AudioBuffer | null = null;
   private source: AudioBufferSourceNode | null = null;
   private gainNode: GainNode;
+  private velocityGain: GainNode;
   private isLooping = false;
+  private triggeredMode = false;
 
   constructor(id: string, params: AudioBlockParams = {}) {
     super(id, "sampler", {
@@ -20,15 +22,28 @@ export class SamplerBlock extends AudioBlock {
 
     this.gainNode = this.audioContext.createGain();
     this.gainNode.gain.value = this.params.gain as number;
-    this.gainNode.connect(this.outputNode);
+
+    this.velocityGain = this.audioContext.createGain();
+    this.velocityGain.gain.value = 1;
+
+    this.gainNode.connect(this.velocityGain);
+    this.velocityGain.connect(this.outputNode);
+
+    this.inputNode.connect(this.gainNode);
 
     this.isLooping = this.params.loop as boolean;
-
-    this.initialize();
   }
 
   initialize() {
     // Sampler starts inactive
+  }
+
+  setTriggeredMode(enabled: boolean) {
+    this.triggeredMode = enabled;
+
+    if (!enabled) {
+      this.velocityGain.gain.setValueAtTime(1, this.audioContext.currentTime);
+    }
   }
 
   async loadSample(url: string) {
@@ -49,7 +64,7 @@ export class SamplerBlock extends AudioBlock {
     }
   }
 
-  play(when = 0, offset = 0) {
+  play(when = 0, offset = 0, velocity = 1) {
     if (!this.buffer) {
       console.warn("No sample loaded");
       return;
@@ -69,16 +84,24 @@ export class SamplerBlock extends AudioBlock {
 
     this.source.connect(this.gainNode);
 
+    const now = this.audioContext.currentTime;
+    const target = this.triggeredMode ? velocity : 1;
+    this.velocityGain.gain.cancelScheduledValues(now);
+    this.velocityGain.gain.setValueAtTime(target, now);
+
     if (!this.isLooping) {
       this.source.onended = () => {
         if (this.source) {
           this.source.disconnect();
           this.source = null;
         }
+        if (this.triggeredMode) {
+          this.velocityGain.gain.setValueAtTime(1, this.audioContext.currentTime);
+        }
       };
     }
 
-    this.source.start(when, offset);
+    this.source.start(this.audioContext.currentTime + when, offset);
   }
 
   stop() {
@@ -93,11 +116,15 @@ export class SamplerBlock extends AudioBlock {
     }
   }
 
-  trigger() {
-    if (this.isLooping && this.isPlaying()) {
-      this.stop();
-    }
-    this.play();
+  trigger(options?: { velocity?: number }) {
+    if (!this.triggeredMode) return;
+
+    const velocity = Math.max(0, Math.min(1, options?.velocity ?? 1));
+    this.play(0, 0, velocity);
+  }
+
+  receiveTrigger(payload: { step: number; velocity: number }) {
+    this.trigger({ velocity: payload.velocity });
   }
 
   isPlaying(): boolean {

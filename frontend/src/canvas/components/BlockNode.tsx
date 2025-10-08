@@ -22,6 +22,7 @@ const NODE_COLORS: Record<string, string> = {
   reverb: "#f59e0b",
   mixer: "#f97316",
   master: "#ef4444",
+  sequencer: "#38bdf8",
   default: "#6b7280",
 };
 
@@ -139,7 +140,7 @@ export function BlockNode(props: BlockNodeProps) {
   };
 
   const outputOffsetX = 140 - 16;
-  const outputOffsetY = nodeHeight() / 2 - 8;
+  const outputOffsetY = nodeHeight() / 2;
 
   return (
     <g

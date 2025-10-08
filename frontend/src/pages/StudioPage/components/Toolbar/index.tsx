@@ -20,9 +20,7 @@ export function Toolbar() {
   const navigate = useNavigate();
 
   const [isEditingTitle, setIsEditingTitle] = createSignal(false);
-  const [isEditingBPM, setIsEditingBPM] = createSignal(false);
   const [tempTitle, setTempTitle] = createSignal("");
-  const [tempBPM, setTempBPM] = createSignal(120);
 
   const handleSave = async () => {
     await studio.saveTrack();
@@ -37,11 +35,6 @@ export function Toolbar() {
     setIsEditingTitle(true);
   };
 
-  const startEditBPM = () => {
-    setTempBPM(studio.currentTrack()?.bpm || 120);
-    setIsEditingBPM(true);
-  };
-
   const saveTitle = async () => {
     if (tempTitle().trim() && studio.currentTrack()) {
       await studio.updateTrackMeta({ title: tempTitle().trim() });
@@ -49,26 +42,11 @@ export function Toolbar() {
     setIsEditingTitle(false);
   };
 
-  const saveBPM = async () => {
-    if (tempBPM() && studio.currentTrack()) {
-      await studio.updateTrackMeta({ bpm: tempBPM() });
-    }
-    setIsEditingBPM(false);
-  };
-
   const handleTitleKeyDown = (e: KeyboardEvent) => {
     if (e.key === "Enter") {
       saveTitle();
     } else if (e.key === "Escape") {
       setIsEditingTitle(false);
-    }
-  };
-
-  const handleBpmKeyDown = (e: KeyboardEvent) => {
-    if (e.key === "Enter") {
-      saveBPM();
-    } else if (e.key === "Escape") {
-      setIsEditingBPM(false);
     }
   };
 
@@ -109,25 +87,6 @@ export function Toolbar() {
               onChange={(e) => setTempTitle(e.currentTarget.value)}
               onBlur={saveTitle}
               onKeyDown={handleTitleKeyDown}
-              autofocus
-            />
-          </Show>
-
-          <Show
-            when={isEditingBPM()}
-            fallback={
-              <span class={trackTitleStyle} onDblClick={startEditBPM} title="Double-click to edit">
-                {studio.currentTrack()!.bpm} BPM
-              </span>
-            }
-          >
-            <Input
-              type="number"
-              class={titleInputStyle}
-              value={tempBPM()}
-              onChange={(e) => setTempBPM(Number(e.currentTarget.value))}
-              onBlur={saveBPM}
-              onKeyDown={handleBpmKeyDown}
               autofocus
             />
           </Show>

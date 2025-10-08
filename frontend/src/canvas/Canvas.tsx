@@ -204,7 +204,7 @@ export function Canvas() {
 
   const getOutputPortPosition = (node: NodeData) => ({
     x: node.position.x + 130,
-    y: node.position.y + getNodeHeight(node) / 2,
+    y: node.position.y + getNodeHeight(node) / 2 + 8,
   });
 
   return (
@@ -261,7 +261,7 @@ export function Canvas() {
                       y: getInputPortY(
                         to,
                         conn.toPortIndex ?? fallbackIndex,
-                      ),
+                      ) + 8,
                     };
 
                     return (

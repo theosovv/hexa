@@ -6,6 +6,8 @@ type ParamsType = "type" | "frequency" | "detune" | "gain";
 export class OscillatorBlock extends AudioBlock {
   private oscillator: OscillatorNode | null = null;
   private gainNode: GainNode;
+  private baseGain = 0.5;
+  private triggeredMode = false;
 
   constructor(id: string, params: AudioBlockParams = {}) {
     super(id, "oscillator", {
@@ -16,9 +18,13 @@ export class OscillatorBlock extends AudioBlock {
       ...params,
     });
 
+    this.baseGain = this.params.gain as number;
+
     this.gainNode = this.audioContext.createGain();
-    this.gainNode.gain.value = this.params.gain as number;
+    this.gainNode.gain.value = this.baseGain;
     this.gainNode.connect(this.outputNode);
+
+    this.inputNode.connect(this.gainNode);
 
     this.initialize();
   }
@@ -45,12 +51,39 @@ export class OscillatorBlock extends AudioBlock {
     this.oscillator.start();
   }
 
-  stop() {
-    if (this.oscillator) {
-      this.oscillator.stop();
-      this.oscillator.disconnect();
-      this.oscillator = null;
+  setTriggeredMode(enabled: boolean) {
+    this.triggeredMode = enabled;
+    const now = this.audioContext.currentTime;
+    this.gainNode.gain.cancelScheduledValues(now);
+    this.gainNode.gain.setValueAtTime(enabled ? 0 : this.baseGain, now);
+  }
+
+  trigger(options?: { velocity?: number; duration?: number }) {
+    if (!this.triggeredMode) return;
+
+    if (!this.oscillator) {
+      this.start();
     }
+
+    const velocity = Math.max(0, Math.min(1, options?.velocity ?? 1));
+    const duration = Math.max(0.01, options?.duration ?? 0.25);
+    const attack = 0.01;
+    const now = this.audioContext.currentTime;
+
+    this.gainNode.gain.cancelScheduledValues(now);
+    this.gainNode.gain.setValueAtTime(0, now);
+    this.gainNode.gain.linearRampToValueAtTime(this.baseGain * velocity, now + attack);
+    this.gainNode.gain.linearRampToValueAtTime(0, now + attack + duration);
+  }
+
+  receiveTrigger(payload: { step: number; velocity: number }) {
+    this.trigger({ velocity: payload.velocity });
+  }
+
+  stop() {
+    this.oscillator?.stop();
+    this.oscillator?.disconnect();
+    this.oscillator = null;
   }
 
   updateParam(key: ParamsType, value: number | string | boolean) {
@@ -58,31 +91,19 @@ export class OscillatorBlock extends AudioBlock {
 
     switch (key) {
       case "type":
-        if (this.oscillator) {
-          this.oscillator.type = value as OscillatorType;
-        }
+        this.oscillator!.type = value as OscillatorType;
         break;
       case "frequency":
-        if (this.oscillator) {
-          this.oscillator.frequency.setValueAtTime(
-          value as number,
-          this.audioContext.currentTime,
-          );
-        }
+        this.oscillator?.frequency.setValueAtTime(value as number, this.audioContext.currentTime);
         break;
       case "detune":
-        if (this.oscillator) {
-          this.oscillator.detune.setValueAtTime(
-          value as number,
-          this.audioContext.currentTime,
-          );
-        }
+        this.oscillator?.detune.setValueAtTime(value as number, this.audioContext.currentTime);
         break;
       case "gain":
-        this.gainNode.gain.setValueAtTime(
-        value as number,
-        this.audioContext.currentTime,
-        );
+        this.baseGain = value as number;
+        if (!this.triggeredMode) {
+          this.gainNode.gain.setValueAtTime(this.baseGain, this.audioContext.currentTime);
+        }
         break;
     }
   }

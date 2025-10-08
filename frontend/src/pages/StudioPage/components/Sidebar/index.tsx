@@ -33,6 +33,14 @@ interface BlockDefinition {
 
 const BLOCKS: BlockDefinition[] = [
   {
+    type: "sequencer",
+    label: "Sequencer",
+    icon: "🎼",
+    color: token("colors.accent.blue"),
+    description: "Step pattern trigger",
+    category: "sources",
+  },
+  {
     type: "oscillator",
     label: "Oscillator",
     icon: "🎵",
