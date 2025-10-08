@@ -164,7 +164,7 @@ export const StudioProvider: ParentComponent = (props) => {
       // Recreate connections
       connections.forEach((conn) => {
         canvasStore.addConnection(conn);
-        audioGraph.connect(conn.from, conn.to);
+        audioGraph.connect(conn.from, conn.to, conn.toPortIndex);
       });
 
       console.log("✓ Track loaded:", track.title);
