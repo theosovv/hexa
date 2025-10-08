@@ -4,6 +4,7 @@ import { FilterBlock } from "./blocks/FilterBlock";
 import { MasterOutBlock } from "./blocks/MasterOutBlock";
 import { OscillatorBlock } from "./blocks/OscillatorBlock";
 import { ReverbBlock } from "./blocks/ReverbBlock";
+import { SamplerBlock } from "./blocks/SamplerBlock";
 import type { AudioBlockType } from "./types";
 
 export class AudioGraphManager {
@@ -25,6 +26,9 @@ export class AudioGraphManager {
         break;
       case "reverb":
         block = new ReverbBlock(id, params);
+        break;
+      case "sampler":
+        block = new SamplerBlock(id, params);
         break;
       case "master":
         block = new MasterOutBlock(id, params);

@@ -1,4 +1,5 @@
 import type { User, TokenPair, APIError } from "./types/auth";
+import type { Sample } from "./types/sample";
 import type { Track, CreateTrackInput, UpdateTrackInput, GraphData } from "./types/track";
 
 
@@ -173,6 +174,59 @@ class APIClient {
 
   async getPublicTrack(id: string): Promise<Track> {
     return this.request<Track>(`/api/public/${id}`);
+  }
+
+  async uploadSample(
+    trackId: string,
+    file: File,
+    onProgress?: (progress: number) => void,
+  ): Promise<Sample> {
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("track_id", trackId);
+
+    return new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+
+      xhr.upload.addEventListener("progress", (e) => {
+        if (e.lengthComputable && onProgress) {
+          const percentage = (e.loaded / e.total) * 100;
+          onProgress(percentage);
+        }
+      });
+
+      xhr.addEventListener("load", () => {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          resolve(JSON.parse(xhr.responseText));
+        } else {
+          reject(new Error(`Upload failed: ${xhr.status}`));
+        }
+      });
+
+      xhr.addEventListener("error", () => {
+        reject(new Error("Upload failed"));
+      });
+
+      xhr.open("POST", `${API_URL}/api/samples/upload`);
+      if (this.accessToken) {
+        xhr.setRequestHeader("Authorization", `Bearer ${this.accessToken}`);
+      }
+      xhr.send(formData);
+    });
+  }
+
+  async getSample(id: string): Promise<Sample> {
+    return this.request<Sample>(`/api/samples/${id}`);
+  }
+
+  async deleteSample(id: string): Promise<{ message: string }> {
+    return this.request(`/api/samples/${id}`, {
+      method: "DELETE",
+    });
+  }
+
+  async listTrackSamples(trackId: string): Promise<Sample[]> {
+    return this.request<Sample[]>(`/api/tracks/${trackId}/samples`);
   }
 
   getGoogleLoginURL(): string {

@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 	"os"
+	"strconv"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -18,6 +19,7 @@ import (
 	"github.com/theosov/hexa/internal/handlers"
 	"github.com/theosov/hexa/pkg/auth"
 	"github.com/theosov/hexa/pkg/cache"
+	"github.com/theosov/hexa/pkg/storage"
 )
 
 func main() {
@@ -55,6 +57,25 @@ func main() {
 	}
 	defer redisClient.Close()
 	log.Println("✓ Connected to Redis")
+
+	minioEndpoint := os.Getenv("MINIO_ENDPOINT")
+	if minioEndpoint == "" {
+		minioEndpoint = "localhost:9000"
+	}
+
+	minioUseSSL, _ := strconv.ParseBool(os.Getenv("MINIO_USE_SSL"))
+
+	minioClient, err := storage.NewMinIOClient(
+		minioEndpoint,
+		os.Getenv("MINIO_ACCESS_KEY"),
+		os.Getenv("MINIO_SECRET_KEY"),
+		os.Getenv("MINIO_BUCKET"),
+		minioUseSSL,
+	)
+	if err != nil {
+		log.Fatalf("Unable to connect to MinIO: %v\n", err)
+	}
+	log.Println("✓ Connected to MinIO")
 
 	jwtSecret := os.Getenv("JWT_SECRET")
 	if jwtSecret == "" {
@@ -94,6 +115,7 @@ func main() {
 	)
 
 	tracksHandler := handlers.NewTracksHandler(queries)
+	samplesHandler := handlers.NewSamplesHandler(queries, minioClient)
 
 	app := fiber.New(fiber.Config{
 		AppName:      "Hexa API v1.0",
@@ -139,6 +161,11 @@ func main() {
 	protected.Put("/tracks/:id", tracksHandler.UpdateTrack)
 	protected.Patch("/tracks/:id/graph", tracksHandler.UpdateTrackGraph)
 	protected.Delete("/tracks/:id", tracksHandler.DeleteTrack)
+
+	protected.Post("/samples/upload", samplesHandler.UploadSample)
+	protected.Get("/samples/:id", samplesHandler.GetSample)
+	protected.Delete("/samples/:id", samplesHandler.DeleteSample)
+	protected.Get("/tracks/:trackId/samples", samplesHandler.ListTrackSamples)
 
 	protected.Get("/ping", func(c *fiber.Ctx) error {
 		email := c.Locals("email").(string)

@@ -19,7 +19,7 @@ import {
 
 import type { AudioBlockType } from "@/audio/types";
 import { token } from "@/styled-system/tokens";
-import { Horizontal, Vertical } from "@/uikit";
+import { Collapsible, Horizontal, Vertical } from "@/uikit";
 
 
 interface BlockDefinition {
@@ -28,6 +28,7 @@ interface BlockDefinition {
   icon: string;
   color: string;
   description: string;
+  category: "sources" | "effects" | "output";
 }
 
 const BLOCKS: BlockDefinition[] = [
@@ -36,7 +37,16 @@ const BLOCKS: BlockDefinition[] = [
     label: "Oscillator",
     icon: "🎵",
     color: token("colors.accent.purple"),
-    description: "Sound source",
+    description: "Sound generator",
+    category: "sources",
+  },
+  {
+    type: "sampler",
+    label: "Sampler",
+    icon: "🎹",
+    color: token("colors.accent.pink"),
+    description: "Play audio files",
+    category: "sources",
   },
   {
     type: "filter",
@@ -44,6 +54,7 @@ const BLOCKS: BlockDefinition[] = [
     icon: "🎛️",
     color: token("colors.accent.blue"),
     description: "Shape frequency",
+    category: "effects",
   },
   {
     type: "delay",
@@ -51,6 +62,7 @@ const BLOCKS: BlockDefinition[] = [
     icon: "⏱️",
     color: token("colors.accent.green"),
     description: "Echo effect",
+    category: "effects",
   },
   {
     type: "reverb",
@@ -58,6 +70,7 @@ const BLOCKS: BlockDefinition[] = [
     icon: "🌊",
     color: token("colors.accent.yellow"),
     description: "Space & depth",
+    category: "effects",
   },
   {
     type: "master",
@@ -65,6 +78,7 @@ const BLOCKS: BlockDefinition[] = [
     icon: "🔊",
     color: token("colors.accent.red"),
     description: "Final output",
+    category: "output",
   },
 ];
 
@@ -76,6 +90,12 @@ const SHORTCUTS = [
   { key: "Shift+Drag", action: "Pan canvas" },
 ];
 
+const CATEGORIES = [
+  { key: "sources", label: "Sources", icon: "🎙️" },
+  { key: "effects", label: "Effects", icon: "✨" },
+  { key: "output", label: "Output", icon: "🔊" },
+] as const;
+
 interface SidebarProps {
   onAddBlock: (type: AudioBlockType) => void;
 }
@@ -86,6 +106,10 @@ export function Sidebar(props: SidebarProps) {
     e.dataTransfer!.setData("blockType", type);
   };
 
+  const getBlocksByCategory = (category: string) => {
+    return BLOCKS.filter((block) => block.category === category);
+  };
+
   return (
     <div class={sidebarStyle}>
       <div class={headerStyle}>
@@ -93,22 +117,32 @@ export function Sidebar(props: SidebarProps) {
         <p class={subtitleStyle}>Drag or click to add</p>
       </div>
 
-      <Vertical gap="sm" class={blocksListStyle}>
-        <For each={BLOCKS}>
-          {(block) => (
-            <div
-              class={blockItemStyle}
-              draggable={true}
-              onDragStart={(e) => handleDragStart(e, block.type)}
-              onClick={() => props.onAddBlock(block.type)}
-              style={{ "border-left-color": block.color }}
+      <Vertical class={blocksListStyle}>
+        <For each={CATEGORIES}>
+          {(category) => (
+            <Collapsible
+              title={category.label}
+              icon={category.icon}
+              defaultOpen={category.key === "sources"}
             >
-              <div class={blockIconStyle}>{block.icon}</div>
-              <Vertical gap="xs" class={blockInfoStyle}>
-                <div class={blockLabelStyle}>{block.label}</div>
-                <div class={blockDescStyle}>{block.description}</div>
-              </Vertical>
-            </div>
+              <For each={getBlocksByCategory(category.key)}>
+                {(block) => (
+                  <div
+                    class={blockItemStyle}
+                    draggable={true}
+                    onDragStart={(e) => handleDragStart(e, block.type)}
+                    onClick={() => props.onAddBlock(block.type)}
+                    style={{ "border-left-color": block.color }}
+                  >
+                    <div class={blockIconStyle}>{block.icon}</div>
+                    <Vertical gap="xs" class={blockInfoStyle}>
+                      <div class={blockLabelStyle}>{block.label}</div>
+                      <div class={blockDescStyle}>{block.description}</div>
+                    </Vertical>
+                  </div>
+                )}
+              </For>
+            </Collapsible>
           )}
         </For>
       </Vertical>

@@ -7,4 +7,5 @@ export type AudioBlockType =
   | "filter"
   | "delay"
   | "reverb"
+  | "sampler"
   | "master";
