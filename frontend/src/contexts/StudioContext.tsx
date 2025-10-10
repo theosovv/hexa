@@ -1,5 +1,5 @@
 import { useNavigate, useParams } from "@solidjs/router";
-import { createContext, createEffect, createSignal, onCleanup, onMount, useContext, type ParentComponent } from "solid-js";
+import { createContext, createEffect, createSignal, onCleanup, onMount, useContext, type Accessor, type ParentComponent } from "solid-js";
 
 import { apiClient } from "../api/client";
 import type { Track } from "../api/types/track";
@@ -15,6 +15,8 @@ import { KeyboardShortcutManager } from "../utils/keyboardShortcuts";
 interface StudioContextType {
   canvasStore: ReturnType<typeof createCanvasStore>;
   audioGraph: AudioGraphManager;
+  recordingStatus: Accessor<RecordingStatus>;
+  recordedBlob: Accessor<Blob | null>
   currentTrack: () => Track | null;
   isPlaying: () => boolean;
   isSaving: () => boolean;
@@ -29,7 +31,11 @@ interface StudioContextType {
   addConnection: (fromId: string, toId: string, toPortIndex?: number) => void;
   removeConnection: (id: string) => void;
   updateTrackMeta: (meta: { title?: string; bpm?: number }) => Promise<void>;
+  startRecording: () => Promise<void>;
+  stopRecording: () => void;
 }
+
+type RecordingStatus = "idle" | "recording" | "recorded" | "error";
 
 const StudioContext = createContext<StudioContextType>();
 
@@ -46,11 +52,62 @@ export const StudioProvider: ParentComponent = (props) => {
   const [isSaving, setIsSaving] = createSignal(false);
   const [selectedNodeId, setSelectedNodeId] = createSignal<string | null>(null);
   const [currentTrack, setCurrentTrack] = createSignal<Track | null>(null);
+  const [recordingStatus, setRecordingStatus] = createSignal<RecordingStatus>("idle");
+  const [recordedBlob, setRecordedBlob] = createSignal<Blob | null>(null);
+  const [recorder, setRecorder] = createSignal<MediaRecorder | null>(null);
+  const recordedChunks: BlobPart[] = [];
 
   let nodeCounter = 0;
 
   const selectNode = (id: string | null) => {
     setSelectedNodeId(id);
+  };
+
+  const startRecording = async () => {
+    if (recordingStatus() === "recording") return;
+
+    const audioManager = AudioContextManager.getInstance();
+    const streamDestination = audioManager.getStreamDestination(); // нужно добавить метод, см. ниже
+
+    try {
+      const stream = streamDestination.stream;
+      const mediaRecorder = new MediaRecorder(stream, { mimeType: "audio/webm;codecs=opus" });
+
+      recordedChunks.length = 0;
+
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          recordedChunks.push(event.data);
+        }
+      };
+
+      mediaRecorder.onstop = () => {
+        const blob = new Blob(recordedChunks, { type: "audio/webm" });
+        setRecordedBlob(blob);
+        setRecordingStatus("recorded");
+      };
+
+      mediaRecorder.onerror = () => {
+        setRecordingStatus("error");
+        setRecorder(null);
+      };
+
+      mediaRecorder.start();
+      setRecorder(mediaRecorder);
+      setRecordedBlob(null);
+      setRecordingStatus("recording");
+    } catch (error) {
+      console.error("Failed to start recording:", error);
+      setRecordingStatus("error");
+    }
+  };
+
+  const stopRecording = () => {
+    const current = recorder();
+    if (current && recordingStatus() === "recording") {
+      current.stop();
+      setRecorder(null);
+    }
   };
 
   const togglePlayback = () => {
@@ -330,6 +387,8 @@ export const StudioProvider: ParentComponent = (props) => {
   const value: StudioContextType = {
     canvasStore,
     audioGraph,
+    recordingStatus,
+    recordedBlob,
     currentTrack,
     isPlaying,
     isSaving,
@@ -344,6 +403,8 @@ export const StudioProvider: ParentComponent = (props) => {
     addConnection,
     removeConnection,
     updateTrackMeta,
+    startRecording,
+    stopRecording,
   };
 
   return <StudioContext.Provider value={value}>{props.children}</StudioContext.Provider>;
