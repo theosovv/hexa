@@ -253,7 +253,7 @@ export const StudioProvider: ParentComponent = (props) => {
           probability: 1,
         })),
       },
-      master: { volume: 0.8 },
+      master: { volume: 0.8, clipThreshold: 0.8 },
     };
 
     const nodeData: NodeData = {
