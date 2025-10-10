@@ -1,4 +1,5 @@
 import { AudioBlock } from "../AudioBlock";
+import { AudioContextManager } from "../AudioContextManager";
 import type { AudioBlockParams } from "../types";
 
 type ParamsType = "volume" | "clipThreshold";
@@ -29,6 +30,7 @@ export class MasterOutBlock extends AudioBlock {
       clipThreshold: DEFAULT_THRESHOLD,
       ...params,
     });
+    const manager = AudioContextManager.getInstance();
 
     // Create gain for master volume
     this.gainNode = this.audioContext.createGain();
@@ -47,6 +49,7 @@ export class MasterOutBlock extends AudioBlock {
     this.gainNode.connect(this.shaper);
     this.shaper.connect(this.analyser);
     this.analyser.connect(this.audioContext.destination);
+    this.analyser.connect(manager.getStreamDestination());
   }
 
   initialize() {

@@ -278,6 +278,33 @@ class APIClient {
     });
   }
 
+  async exportMp3(blob: Blob, options?: { bitrate?: number; filename?: string }) {
+    const formData = new FormData();
+    formData.append("audio", blob, "recording.webm");
+    if (options?.bitrate) formData.append("bitrate", options.bitrate.toString());
+    if (options?.filename) formData.append("filename", options.filename);
+
+    const headers: Record<string, string> = {};
+
+    if (this.accessToken) {
+      headers["Authorization"] = `Bearer ${this.accessToken}`;
+    }
+
+    const response = await fetch(`${API_URL}/api/export/mp3`, {
+      method: "POST",
+      body: formData,
+      headers,
+      credentials: "include",
+    });
+
+    if (!response.ok) {
+      throw new Error(`MP3 export failed (${response.status})`);
+    }
+    const mp3Blob = await response.blob();
+    return mp3Blob;
+  }
+
+
   getGoogleLoginURL(): string {
     return `${API_URL}/auth/google`;
   }

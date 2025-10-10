@@ -1,6 +1,7 @@
 export class AudioContextManager {
   private static instance: AudioContextManager;
   private context: AudioContext | null = null;
+  private streamDestination: MediaStreamAudioDestinationNode | null = null;
 
   private constructor() {}
 
@@ -12,15 +13,18 @@ export class AudioContextManager {
     return AudioContextManager.instance;
   }
 
+  getStreamDestination(): MediaStreamAudioDestinationNode {
+    if (!this.streamDestination) {
+      const context = this.getContext();
+      this.streamDestination = context.createMediaStreamDestination();
+    }
+    return this.streamDestination;
+  }
+
   getContext(): AudioContext {
     if (!this.context) {
       this.context = new AudioContext();
     }
-
-    if (this.context.state === "suspended") {
-      this.context.resume();
-    }
-
     return this.context;
   }
 

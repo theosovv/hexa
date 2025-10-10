@@ -88,3 +88,31 @@ export const bpmInputStyle = css({
     borderColor: token("colors.accent.purple"),
   },
 });
+
+export const exportMenuStyle = css({
+  position: "absolute",
+  top: "calc(100% + 8px)",
+  right: 0,
+  zIndex: 10,
+  minWidth: "220px",
+});
+
+export const exportActionsStyle = css({
+  display: "grid",
+  gap: "8px",
+});
+
+export const bitrateRowStyle = css({
+  display: "flex",
+  alignItems: "center",
+  gap: "12px",
+  marginTop: "12px",
+});
+
+export const exportButtonContainer = css({
+  position: "relative",
+});
+
+export const formatButtonStyle = css({
+  width: "100%",
+});

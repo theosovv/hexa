@@ -117,6 +117,7 @@ func main() {
 	tracksHandler := handlers.NewTracksHandler(queries)
 	samplesHandler := handlers.NewSamplesHandler(queries, minioClient)
 	impulsesHandler := handlers.NewImpulsesHandler(queries, minioClient)
+	exportHandler := handlers.NewExportHandler()
 
 	app := fiber.New(fiber.Config{
 		AppName:      "Hexa API v1.0",
@@ -172,6 +173,8 @@ func main() {
 	protected.Get("/impulses/:id", impulsesHandler.GetImpulse)
 	protected.Delete("/impulses/:id", impulsesHandler.DeleteImpulse)
 	protected.Get("/tracks/:trackId/impulses", impulsesHandler.ListTrackImpulses)
+
+	protected.Post("/export/mp3", exportHandler.ExportMP3)
 
 	protected.Get("/ping", func(c *fiber.Ctx) error {
 		email := c.Locals("email").(string)
