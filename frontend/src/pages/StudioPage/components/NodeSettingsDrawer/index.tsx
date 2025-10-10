@@ -13,6 +13,7 @@ import { ReverbSettings } from "@/features/ReverbSettings";
 import { SamplerSettings } from "@/features/SamplerSettings";
 import { SequencerSettings } from "@/features/SequencerSettings";
 import { Drawer } from "@/uikit";
+import { LFOSettings } from "@/features/LFOSettings";
 
 export function NodeSettingsDrawer() {
   const studio = useStudio();
@@ -49,6 +50,10 @@ export function NodeSettingsDrawer() {
           <Switch>
             <Match when={selectedNode()!.type === "oscillator"}>
               <OscillatorSettings node={selectedNode()!} onUpdate={updateParam} />
+            </Match>
+
+            <Match when={selectedNode()!.type === "lfo"}>
+              <LFOSettings node={selectedNode()!} onUpdate={updateParam} />
             </Match>
 
             <Match when={selectedNode()!.type === "sampler"}>

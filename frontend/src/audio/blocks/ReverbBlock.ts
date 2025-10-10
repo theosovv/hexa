@@ -16,6 +16,13 @@ type ParamKey =
   | "impulseName"
   | "normalize";
 
+type ModTarget = "wet" | "dry";
+
+const MODULATION_SCALE: Record<ModTarget, number> = {
+  wet: 0.5,
+  dry: 0.5,
+};
+
 export class ReverbBlock extends AudioBlock {
   private convolver: ConvolverNode;
   private wetGain: GainNode;
@@ -24,6 +31,7 @@ export class ReverbBlock extends AudioBlock {
   private isUsingFallback = true;
   private currentImpulseUrl: string | null = null;
   private loadRequestId = 0;
+  private modulationNodes = new Map<string, { gain: GainNode; target: ModTarget }>();
 
   constructor(id: string, params: AudioBlockParams = {}) {
     super(id, "reverb", {
@@ -37,13 +45,13 @@ export class ReverbBlock extends AudioBlock {
       ...params,
     });
 
-    this.params.size = this.toNumber(this.params.size, DEFAULT_REVERB_SIZE);
-    this.params.decay = this.toNumber(this.params.decay, DEFAULT_REVERB_DECAY);
+    this.params.size = this.toNumber(this.params.size as number, DEFAULT_REVERB_SIZE);
+    this.params.decay = this.toNumber(this.params.decay as number, DEFAULT_REVERB_DECAY);
     this.params.impulseUrl =
       typeof this.params.impulseUrl === "string" ? this.params.impulseUrl : DEFAULT_IMPULSE_URL;
 
     this.convolver = this.audioContext.createConvolver();
-    const normalize = this.toBoolean(this.params.normalize, DEFAULT_NORMALIZE);
+    const normalize = this.toBoolean(this.params.normalize as boolean, DEFAULT_NORMALIZE);
     this.convolver.normalize = normalize;
     this.params.normalize = normalize;
 
@@ -57,7 +65,7 @@ export class ReverbBlock extends AudioBlock {
     this.convolver.connect(this.wetGain);
     this.wetGain.connect(this.outputNode);
 
-    this.setMix(this.toNumber(this.params.mix, DEFAULT_REVERB_MIX));
+    this.setMix(this.toNumber(this.params.mix as number, DEFAULT_REVERB_MIX));
 
     this.initialize();
   }
@@ -91,8 +99,8 @@ export class ReverbBlock extends AudioBlock {
   }
 
   private generateImpulseResponseBuffer(): AudioBuffer {
-    const size = this.toNumber(this.params.size, DEFAULT_REVERB_SIZE);
-    const decay = this.toNumber(this.params.decay, DEFAULT_REVERB_DECAY);
+    const size = this.toNumber(this.params.size as number, DEFAULT_REVERB_SIZE);
+    const decay = this.toNumber(this.params.decay as number, DEFAULT_REVERB_DECAY);
 
     const sampleRate = this.audioContext.sampleRate;
     const seconds = Math.max(decay, 0.1);
@@ -269,5 +277,36 @@ export class ReverbBlock extends AudioBlock {
     this.convolver.buffer = null;
     this.fallbackImpulse = null;
     super.destroy();
+  }
+
+  registerInputConnection(connectionId: string, fromBlock: AudioBlock, targetIndex = 0): AudioNode | AudioParam {
+    if (fromBlock.type === "lfo") {
+      const targets: ModTarget[] = ["wet", "dry"];
+      const target = targets[Math.min(targets.length - 1, Math.max(0, targetIndex))];
+      const param = this.getParamByTarget(target);
+
+      const gainNode = this.audioContext.createGain();
+      gainNode.gain.value = MODULATION_SCALE[target];
+      gainNode.connect(param);
+
+      this.modulationNodes.set(connectionId, { gain: gainNode, target });
+      return gainNode;
+    }
+
+    return super.registerInputConnection(connectionId, fromBlock, targetIndex);
+  }
+
+  releaseInputConnection(connectionId: string): void {
+    const entry = this.modulationNodes.get(connectionId);
+    if (entry) {
+      entry.gain.disconnect();
+      this.modulationNodes.delete(connectionId);
+      return;
+    }
+    super.releaseInputConnection(connectionId);
+  }
+
+  private getParamByTarget(target: ModTarget): AudioParam {
+    return target === "wet" ? this.wetGain.gain : this.dryGain.gain;
   }
 }

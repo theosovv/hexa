@@ -2,12 +2,20 @@ import { AudioBlock } from "../AudioBlock";
 import type { AudioBlockParams } from "../types";
 
 type ParamsType = "time" | "feedback" | "mix";
+type ModTarget = "time" | "feedback" | "mix";
+
+const MODULATION_SCALE: Record<ModTarget, number> = {
+  time: 0.25,
+  feedback: 0.5,
+  mix: 0.5,
+};
 
 export class DelayBlock extends AudioBlock {
   private delay: DelayNode;
   private feedback: GainNode;
   private wetGain: GainNode;
   private dryGain: GainNode;
+  private modulationNodes = new Map<string, { gain: GainNode; target: ModTarget }>();
 
   constructor(id: string, params: AudioBlockParams = {}) {
     super(id, "delay", {
@@ -80,5 +88,43 @@ export class DelayBlock extends AudioBlock {
     this.wetGain.disconnect();
     this.dryGain.disconnect();
     super.destroy();
+  }
+
+  registerInputConnection(connectionId: string, fromBlock: AudioBlock, targetIndex = 0): AudioNode | AudioParam {
+    if (fromBlock.type === "lfo") {
+      const targets: ModTarget[] = ["time", "feedback", "mix"];
+      const target = targets[Math.min(targets.length - 1, Math.max(0, targetIndex))];
+      const param = this.getParamByTarget(target);
+
+      const gainNode = this.audioContext.createGain();
+      gainNode.gain.value = MODULATION_SCALE[target];
+      gainNode.connect(param);
+
+      this.modulationNodes.set(connectionId, { gain: gainNode, target });
+      return gainNode;
+    }
+
+    return super.registerInputConnection(connectionId, fromBlock, targetIndex);
+  }
+
+  releaseInputConnection(connectionId: string): void {
+    const entry = this.modulationNodes.get(connectionId);
+    if (entry) {
+      entry.gain.disconnect();
+      this.modulationNodes.delete(connectionId);
+      return;
+    }
+    super.releaseInputConnection(connectionId);
+  }
+
+  private getParamByTarget(target: ModTarget): AudioParam {
+    switch (target) {
+      case "time":
+        return this.delay.delayTime;
+      case "feedback":
+        return this.feedback.gain;
+      default:
+        return this.wetGain.gain;
+    }
   }
 }

@@ -19,4 +19,5 @@ export type AudioBlockType =
   | "sampler"
   | "mixer"
   | "sequencer"
+  | "lfo"
   | "master";

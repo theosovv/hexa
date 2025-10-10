@@ -2,6 +2,8 @@ import { AudioContextManager } from "./AudioContextManager";
 import type { SequencerStep } from "./blocks/SequencerBlock";
 import type { AudioBlockParamPrimitive, AudioBlockParams } from "./types";
 
+type ConnectionEndpoint = AudioNode | AudioParam;
+
 export abstract class AudioBlock {
   protected audioContext: AudioContext;
   protected inputNode: GainNode;
@@ -9,6 +11,7 @@ export abstract class AudioBlock {
   public id: string;
   public type: string;
   public params: AudioBlockParams;
+  private connectionEndpoints = new Map<string, ConnectionEndpoint>();
 
   constructor(id: string, type: string, params: AudioBlockParams = {}) {
     this.id = id;
@@ -23,23 +26,62 @@ export abstract class AudioBlock {
   }
 
   abstract initialize(): void;
-  abstract updateParam(key: string, value: SequencerStep[] | AudioBlockParamPrimitive | AudioBlockParamPrimitive[] | Record<string, AudioBlockParamPrimitive>): void;
+  abstract updateParam(
+    key: string,
+    value: SequencerStep[]
+      | AudioBlockParamPrimitive
+      | AudioBlockParamPrimitive[]
+      | Record<string, AudioBlockParamPrimitive>
+    ): void;
 
   connect(target: AudioBlock, connectionId: string, targetIndex?: number) {
-    const destination = target.registerInputConnection(connectionId, this, targetIndex);
-    this.outputNode.connect(destination);
-  }
+    const endpoint = target.registerInputConnection(connectionId, this, targetIndex);
+    if (!endpoint) return;
 
-  disconnect(target?: AudioBlock, connectionId?: string) {
-    if (target) {
-      this.outputNode.disconnect(target.registerInputConnection(connectionId ?? "", this));
-      target.releaseInputConnection(connectionId ?? "");
+    this.connectionEndpoints.set(connectionId, endpoint);
+
+    if (this.isAudioParam(endpoint)) {
+      this.outputNode.connect(endpoint);
     } else {
-      this.outputNode.disconnect();
+      this.outputNode.connect(endpoint);
     }
   }
 
-  registerInputConnection(_connectionId: string, _fromBlock: AudioBlock, _targetIndex?: number): AudioNode {
+  disconnect(target?: AudioBlock, connectionId?: string) {
+    if (target && connectionId) {
+      const endpoint = this.connectionEndpoints.get(connectionId);
+      if (endpoint) {
+        if (this.isAudioParam(endpoint)) {
+          this.outputNode.disconnect(endpoint);
+        } else {
+          this.outputNode.disconnect(endpoint);
+        }
+        this.connectionEndpoints.delete(connectionId);
+        target.releaseInputConnection(connectionId);
+        return;
+      }
+
+      const tempEndpoint = target.registerInputConnection(connectionId, this);
+      if (this.isAudioParam(tempEndpoint)) {
+        this.outputNode.disconnect(tempEndpoint);
+      } else {
+        this.outputNode.disconnect(tempEndpoint);
+      }
+      target.releaseInputConnection(connectionId);
+      return;
+    }
+
+    this.connectionEndpoints.forEach((endpoint) => {
+      if (this.isAudioParam(endpoint)) {
+        this.outputNode.disconnect(endpoint);
+      } else {
+        this.outputNode.disconnect(endpoint);
+      }
+    });
+    this.connectionEndpoints.clear();
+  }
+
+  registerInputConnection(_connectionId: string, _fromBlock: AudioBlock, _targetIndex?: number): ConnectionEndpoint {
     return this.inputNode;
   }
 
@@ -58,5 +100,9 @@ export abstract class AudioBlock {
 
   getOutputNode(): GainNode {
     return this.outputNode;
+  }
+
+  protected isAudioParam(endpoint: ConnectionEndpoint): endpoint is AudioParam {
+    return typeof (endpoint as AudioParam).setValueAtTime === "function";
   }
 }

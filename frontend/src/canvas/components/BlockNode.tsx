@@ -23,6 +23,7 @@ const NODE_COLORS: Record<string, string> = {
   mixer: "#f97316",
   master: "#ef4444",
   sequencer: "#38bdf8",
+  lfo: "#06b6d4",
   default: "#6b7280",
 };
 
