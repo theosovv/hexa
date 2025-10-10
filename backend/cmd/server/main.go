@@ -118,6 +118,7 @@ func main() {
 	samplesHandler := handlers.NewSamplesHandler(queries, minioClient)
 	impulsesHandler := handlers.NewImpulsesHandler(queries, minioClient)
 	exportHandler := handlers.NewExportHandler()
+	scenesHandler := handlers.NewScenesHandler(queries)
 
 	app := fiber.New(fiber.Config{
 		AppName:      "Hexa API v1.0",
@@ -173,6 +174,11 @@ func main() {
 	protected.Get("/impulses/:id", impulsesHandler.GetImpulse)
 	protected.Delete("/impulses/:id", impulsesHandler.DeleteImpulse)
 	protected.Get("/tracks/:trackId/impulses", impulsesHandler.ListTrackImpulses)
+
+	protected.Get("/tracks/:trackId/scenes", scenesHandler.ListScenes)
+	protected.Post("/tracks/:trackId/scenes", scenesHandler.CreateScene)
+	protected.Put("/scenes/:sceneId", scenesHandler.UpdateScene)
+	protected.Delete("/scenes/:sceneId", scenesHandler.DeleteScene)
 
 	protected.Post("/export/mp3", exportHandler.ExportMP3)
 

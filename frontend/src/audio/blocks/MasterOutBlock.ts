@@ -48,8 +48,9 @@ export class MasterOutBlock extends AudioBlock {
     this.inputNode.connect(this.gainNode);
     this.gainNode.connect(this.shaper);
     this.shaper.connect(this.analyser);
-    this.analyser.connect(this.audioContext.destination);
-    this.analyser.connect(manager.getStreamDestination());
+    this.analyser.connect(this.outputNode);
+    this.outputNode.connect(this.audioContext.destination);
+    this.outputNode.connect(manager.getStreamDestination());
   }
 
   initialize() {

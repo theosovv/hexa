@@ -12,6 +12,7 @@ export abstract class AudioBlock {
   public type: string;
   public params: AudioBlockParams;
   private connectionEndpoints = new Map<string, ConnectionEndpoint>();
+  private muted = false;
 
   constructor(id: string, type: string, params: AudioBlockParams = {}) {
     this.id = id;
@@ -90,6 +91,7 @@ export abstract class AudioBlock {
   }
 
   destroy() {
+    this.disconnect();
     this.inputNode.disconnect();
     this.outputNode.disconnect();
   }
@@ -100,6 +102,15 @@ export abstract class AudioBlock {
 
   getOutputNode(): GainNode {
     return this.outputNode;
+  }
+
+  setMuted(muted: boolean) {
+    this.muted = muted;
+    this.outputNode.gain.setValueAtTime(muted ? 0 : 1, this.audioContext.currentTime);
+  }
+
+  isMuted(): boolean {
+    return this.muted;
   }
 
   protected isAudioParam(endpoint: ConnectionEndpoint): endpoint is AudioParam {

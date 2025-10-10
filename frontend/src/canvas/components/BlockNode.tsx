@@ -2,9 +2,10 @@
 import { For, Show } from "solid-js";
 import { createSignal } from "solid-js";
 
-import { css, cx } from "../../../styled-system/css";
+import { css, cva, cx } from "../../../styled-system/css";
 import type { DragHandler } from "../DragHandler";
 import type { NodeData, Point } from "../types";
+import { useStudio } from "@/contexts/StudioContext";
 
 interface BlockNodeProps {
   node: NodeData;
@@ -27,17 +28,35 @@ const NODE_COLORS: Record<string, string> = {
   default: "#6b7280",
 };
 
-function formatParamValue(value: string | number): string {
+function formatParamValue(value: unknown): string {
   if (typeof value === "number") {
     return value.toFixed(value < 1 ? 2 : 0);
   }
+
   if (typeof value === "string") {
     return value;
   }
-  return String(value);
+
+  if (typeof value === "boolean") {
+    return value ? "on" : "off";
+  }
+
+  if (Array.isArray(value)) {
+    return `Array(${value.length})`;
+  }
+
+  if (value && typeof value === "object") {
+    const keys = Object.keys(value as object);
+    return keys.length ? `{…${keys.length}}` : "{}";
+  }
+
+  return String(value ?? "");
 }
 
 export function BlockNode(props: BlockNodeProps) {
+  const studio = useStudio();
+  const isLive = () => studio.mode() === "live";
+  const muted = () => studio.isNodeMuted?.(props.node.id) ?? false;
   const [isHovered, setIsHovered] = createSignal(false);
   const [isDragging, setIsDragging] = createSignal(false);
 
@@ -65,6 +84,8 @@ export function BlockNode(props: BlockNodeProps) {
   const inputCount = () => mixerChannels();
 
   const handleMouseDown = (e: MouseEvent) => {
+    if (isLive()) return;
+
     e.stopPropagation();
 
     setIsDragging(true);
@@ -98,12 +119,16 @@ export function BlockNode(props: BlockNodeProps) {
   };
 
   const handleDelete = (e: MouseEvent) => {
+    if (isLive()) return;
+
     e.stopPropagation();
 
     props.onDelete?.(props.node.id);
   };
 
   const handleInputClick = (portY: number, portIndex: number) => (e: MouseEvent) => {
+    if (isLive()) return;
+
     e.stopPropagation();
     props.onPortClick?.(
       props.node.id,
@@ -197,10 +222,25 @@ export function BlockNode(props: BlockNodeProps) {
       </text>
 
       {/* Delete button (show on hover) */}
+      <Show when={isLive()}>
+        <foreignObject x="-6" y="-22" width="80" height="40">
+          <button
+            class={cx(muteButtonBase, muted() && muteButtonActive)}
+            onClick={(e) => {
+              e.stopPropagation();
+              studio.toggleNodeMute?.(props.node.id);
+            }}
+          >
+            {muted() ? "Muted" : "Mute"}
+          </button>
+        </foreignObject>
+      </Show>
       <Show when={isHovered()}>
-        <g class={deleteButtonStyle} onClick={handleDelete}>
-          <text x={130} y={16} class={deleteTextStyle}>×</text>
-        </g>
+        <Show when={!isLive()}>
+          <g class={deleteButtonStyle} onClick={handleDelete}>
+            <text x={130} y={16} class={deleteTextStyle}>×</text>
+          </g>
+        </Show>
       </Show>
 
       {/* Input port */}
@@ -236,7 +276,7 @@ export function BlockNode(props: BlockNodeProps) {
               {([key, value]) => (
                 <div class={paramItemStyle}>
                   <span class={paramKeyStyle}>{key}:</span>
-                  <span class={paramValueStyle}>{formatParamValue(value as string | number)}</span>
+                  <span class={paramValueStyle}>{formatParamValue(value)}</span>
                 </div>
               )}
             </For>
@@ -246,6 +286,29 @@ export function BlockNode(props: BlockNodeProps) {
     </g>
   );
 }
+
+const muteButtonBase = css({
+  display: "block",
+  width: "100%",
+  height: "100%",
+  borderRadius: "999px",
+  fontSize: "12px",
+  fontWeight: "600",
+  border: "1px solid rgba(148,163,184,0.45)",
+  background: "rgba(15,23,42,0.85)",
+  color: "#e2e8f0",
+  cursor: "pointer",
+  transition: "all 0.15s",
+  "&:hover": {
+    background: "rgba(99,102,241,0.25)",
+  },
+});
+
+const muteButtonActive = css({
+  background: "rgba(244,63,94,0.35)",
+  borderColor: "rgba(244,63,94,0.65)",
+  color: "#f1f5f9",
+});
 
 const nodeGroupStyle = css({
   cursor: "move",
