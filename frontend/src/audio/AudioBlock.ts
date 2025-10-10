@@ -11,6 +11,7 @@ export abstract class AudioBlock {
   public id: string;
   public type: string;
   public params: AudioBlockParams;
+  private connectionEndpoints = new Map<string, ConnectionEndpoint>();
 
   constructor(id: string, type: string, params: AudioBlockParams = {}) {
     this.id = id;
@@ -34,27 +35,50 @@ export abstract class AudioBlock {
     ): void;
 
   connect(target: AudioBlock, connectionId: string, targetIndex?: number) {
-    const destination = target.registerInputConnection(connectionId, this, targetIndex);
+    const endpoint = target.registerInputConnection(connectionId, this, targetIndex);
+    if (!endpoint) return;
 
-    if (this.isAudioParam(destination)) {
-      this.outputNode.connect(destination);
+    this.connectionEndpoints.set(connectionId, endpoint);
+
+    if (this.isAudioParam(endpoint)) {
+      this.outputNode.connect(endpoint);
     } else {
-      this.outputNode.connect(destination);
+      this.outputNode.connect(endpoint);
     }
   }
 
   disconnect(target?: AudioBlock, connectionId?: string) {
-    if (target) {
-      const endpoint = target.registerInputConnection(connectionId ?? "", this);
+    if (target && connectionId) {
+      const endpoint = this.connectionEndpoints.get(connectionId);
+      if (endpoint) {
+        if (this.isAudioParam(endpoint)) {
+          this.outputNode.disconnect(endpoint);
+        } else {
+          this.outputNode.disconnect(endpoint);
+        }
+        this.connectionEndpoints.delete(connectionId);
+        target.releaseInputConnection(connectionId);
+        return;
+      }
+
+      const tempEndpoint = target.registerInputConnection(connectionId, this);
+      if (this.isAudioParam(tempEndpoint)) {
+        this.outputNode.disconnect(tempEndpoint);
+      } else {
+        this.outputNode.disconnect(tempEndpoint);
+      }
+      target.releaseInputConnection(connectionId);
+      return;
+    }
+
+    this.connectionEndpoints.forEach((endpoint) => {
       if (this.isAudioParam(endpoint)) {
         this.outputNode.disconnect(endpoint);
       } else {
         this.outputNode.disconnect(endpoint);
       }
-      target.releaseInputConnection(connectionId ?? "");
-    } else {
-      this.outputNode.disconnect();
-    }
+    });
+    this.connectionEndpoints.clear();
   }
 
   registerInputConnection(_connectionId: string, _fromBlock: AudioBlock, _targetIndex?: number): ConnectionEndpoint {
