@@ -3,9 +3,12 @@ import type { AudioBlockParams } from "../types";
 
 type ParamsType = "volume";
 
+const MODULATION_SCALE = 0.5;
+
 export class MasterOutBlock extends AudioBlock {
   private analyser: AnalyserNode;
   private gainNode: GainNode;
+  private modulationNodes = new Map<string, GainNode>();
 
   constructor(id: string, params: AudioBlockParams = {}) {
     super(id, "master", {
@@ -64,5 +67,29 @@ export class MasterOutBlock extends AudioBlock {
     this.gainNode.disconnect();
     this.analyser.disconnect();
     super.destroy();
+  }
+
+  registerInputConnection(connectionId: string, fromBlock: AudioBlock, targetIndex = 0): AudioNode | AudioParam {
+    if (fromBlock.type === "lfo") {
+      const gainNode = this.audioContext.createGain();
+      gainNode.gain.value = MODULATION_SCALE;
+      gainNode.connect(this.gainNode.gain);
+
+      this.modulationNodes.set(connectionId, gainNode);
+      return gainNode;
+    }
+
+    return super.registerInputConnection(connectionId, fromBlock, targetIndex);
+  }
+
+  releaseInputConnection(connectionId: string): void {
+    const gainNode = this.modulationNodes.get(connectionId);
+    if (gainNode) {
+      gainNode.disconnect();
+      this.modulationNodes.delete(connectionId);
+      return;
+    }
+
+    super.releaseInputConnection(connectionId);
   }
 }

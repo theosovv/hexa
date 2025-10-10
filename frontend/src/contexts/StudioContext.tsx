@@ -241,6 +241,7 @@ export const StudioProvider: ParentComponent = (props) => {
       delay: { time: 0.25, feedback: 0.3, mix: 0.5 },
       reverb: { size: "2.0", decay: 3.0, mix: 0.3 },
       mixer: { channels: 4, master: 1 },
+      lfo: { frequency: 2, depth: 0.5, offset: 0.5, waveform: "sine", active: true },
       sequencer: {
         bpm: 120,
         stepsPerBar: 16,

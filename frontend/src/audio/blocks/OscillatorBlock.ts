@@ -8,6 +8,7 @@ export class OscillatorBlock extends AudioBlock {
   private gainNode: GainNode;
   private baseGain = 0.5;
   private triggeredMode = false;
+  private modulationConnections = new Map<string, AudioParam>();
 
   constructor(id: string, params: AudioBlockParams = {}) {
     super(id, "oscillator", {
@@ -106,6 +107,25 @@ export class OscillatorBlock extends AudioBlock {
         }
         break;
     }
+  }
+
+  registerInputConnection(connectionId: string, fromBlock: AudioBlock): AudioNode | AudioParam {
+    if (fromBlock.type === "lfo") {
+      const param = this.gainNode.gain;
+      this.modulationConnections.set(connectionId, param);
+      return param;
+    }
+
+    return super.registerInputConnection(connectionId, fromBlock);
+  }
+
+  releaseInputConnection(connectionId: string): void {
+    if (this.modulationConnections.has(connectionId)) {
+      this.modulationConnections.delete(connectionId);
+      return;
+    }
+
+    super.releaseInputConnection(connectionId);
   }
 
   destroy() {

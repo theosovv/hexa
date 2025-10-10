@@ -1,6 +1,13 @@
 import { AudioBlock } from "../AudioBlock";
 import type { AudioBlockParams } from "../types";
 
+type ModTarget = "volume" | "speed";
+
+const MODULATION_SCALE: Record<ModTarget, number> = {
+  volume: 0.5,
+  speed: 0.2,
+};
+
 export class SamplerBlock extends AudioBlock {
   private buffer: AudioBuffer | null = null;
   private source: AudioBufferSourceNode | null = null;
@@ -8,6 +15,7 @@ export class SamplerBlock extends AudioBlock {
   private velocityGain: GainNode;
   private isLooping = false;
   private triggeredMode = false;
+  private modulationNodes = new Map<string, { gain: GainNode; target: ModTarget }>();
 
   constructor(id: string, params: AudioBlockParams = {}) {
     super(id, "sampler", {
@@ -177,5 +185,36 @@ export class SamplerBlock extends AudioBlock {
     this.stop();
     this.gainNode.disconnect();
     super.destroy();
+  }
+
+  registerInputConnection(connectionId: string, fromBlock: AudioBlock, targetIndex = 0): AudioNode | AudioParam {
+    if (fromBlock.type === "lfo") {
+      const targets: ModTarget[] = ["volume", "speed"];
+      const target = targets[Math.min(targets.length - 1, Math.max(0, targetIndex))];
+      const param = this.getParamByTarget(target);
+
+      const gainNode = this.audioContext.createGain();
+      gainNode.gain.value = MODULATION_SCALE[target];
+      gainNode.connect(param);
+
+      this.modulationNodes.set(connectionId, { gain: gainNode, target });
+      return gainNode;
+    }
+
+    return super.registerInputConnection(connectionId, fromBlock, targetIndex);
+  }
+
+  releaseInputConnection(connectionId: string): void {
+    const entry = this.modulationNodes.get(connectionId);
+    if (entry) {
+      entry.gain.disconnect();
+      this.modulationNodes.delete(connectionId);
+      return;
+    }
+    super.releaseInputConnection(connectionId);
+  }
+
+  private getParamByTarget(target: ModTarget): AudioParam {
+    return target === "volume" ? this.gainNode.gain : this.velocityGain.gain;
   }
 }

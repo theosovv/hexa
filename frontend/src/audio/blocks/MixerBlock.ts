@@ -8,13 +8,21 @@ interface MixerChannelState {
 
 const DEFAULT_CHANNEL_COUNT = 4;
 const DEFAULT_CHANNEL_GAIN = 1;
+const MASTER_INDEX = -1;
+
+const MODULATION_SCALE = {
+  master: 0.5,
+  channel: 0.5,
+};
 
 type MixerParamKey = "channels" | "master" | `gain_${number}`;
+type ModTarget = "master" | "channel";
 
 export class MixerBlock extends AudioBlock {
   private masterGain: GainNode;
   private channels: MixerChannelState[] = [];
   private channelAssignments = new Map<string, MixerChannelState>();
+  private modulationNodes = new Map<string, { gain: GainNode; target: ModTarget; channel?: MixerChannelState }>();
 
   constructor(id: string, params: AudioBlockParams = {}) {
     super(id, "mixer", {
@@ -66,9 +74,30 @@ export class MixerBlock extends AudioBlock {
     }
   }
 
-  registerInputConnection(connectionId: string, _fromBlock: AudioBlock, targetIndex?: number): AudioNode {
-    let channel = this.channelAssignments.get(connectionId);
+  registerInputConnection(
+    connectionId: string,
+    fromBlock: AudioBlock,
+    targetIndex?: number,
+  ): AudioNode | AudioParam {
+    if (fromBlock.type === "lfo") {
+      if (typeof targetIndex !== "number" || targetIndex === MASTER_INDEX) {
+        const gainNode = this.audioContext.createGain();
+        gainNode.gain.value = MODULATION_SCALE.master;
+        gainNode.connect(this.masterGain.gain);
+        this.modulationNodes.set(connectionId, { gain: gainNode, target: "master" });
+        return gainNode;
+      }
 
+      this.ensureChannelCount(targetIndex + 1);
+      const channel = this.channels[targetIndex];
+      const gainNode = this.audioContext.createGain();
+      gainNode.gain.value = MODULATION_SCALE.channel;
+      gainNode.connect(channel.gainNode.gain);
+      this.modulationNodes.set(connectionId, { gain: gainNode, target: "channel", channel });
+      return gainNode;
+    }
+
+    let channel = this.channelAssignments.get(connectionId);
     if (!channel) {
       channel = this.allocateChannel(connectionId, targetIndex);
       this.channelAssignments.set(connectionId, channel);
@@ -78,12 +107,18 @@ export class MixerBlock extends AudioBlock {
   }
 
   releaseInputConnection(connectionId: string): void {
-    const channel = this.channelAssignments.get(connectionId);
-    if (!channel) return;
+    const entry = this.modulationNodes.get(connectionId);
+    if (entry) {
+      entry.gain.disconnect();
+      this.modulationNodes.delete(connectionId);
+      return;
+    }
 
-    channel.gainNode.disconnect();
-    channel.gainNode.connect(this.masterGain);
-    this.channelAssignments.delete(connectionId);
+    if (this.channelAssignments.delete(connectionId)) {
+      return;
+    }
+
+    super.releaseInputConnection(connectionId);
   }
 
   destroy(): void {

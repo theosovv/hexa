@@ -65,6 +65,14 @@ const BLOCKS: BlockDefinition[] = [
     category: "effects",
   },
   {
+    type: "lfo",
+    label: "LFO",
+    icon: "🌊",
+    color: token("colors.accent.cyan"),
+    description: "Modulate parameters",
+    category: "effects",
+  },
+  {
     type: "filter",
     label: "Filter",
     icon: "🎛️",
