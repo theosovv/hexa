@@ -1,6 +1,7 @@
 import type { User, TokenPair, APIError } from "./types/auth";
 import type { ImpulseResponse } from "./types/impulse";
 import type { Sample } from "./types/sample";
+import type { Scene } from "./types/scene";
 import type { Track, CreateTrackInput, UpdateTrackInput, GraphData } from "./types/track";
 
 
@@ -302,6 +303,30 @@ class APIClient {
     }
     const mp3Blob = await response.blob();
     return mp3Blob;
+  }
+
+  async listScenes(trackId: string): Promise<Scene[]> {
+    return this.request(`/api/tracks/${trackId}/scenes`);
+  }
+
+  async createScene(trackId: string, payload: { name: string; position?: number; state_data: Scene["state_data"] }): Promise<Scene> {
+    return this.request(`/api/tracks/${trackId}/scenes`, {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async updateScene(sceneId: string, payload: { name?: string; position?: number; state_data: Scene["state_data"] }): Promise<Scene> {
+    return this.request(`/api/scenes/${sceneId}`, {
+      method: "PUT",
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async deleteScene(sceneId: string): Promise<void> {
+    await this.request(`/api/scenes/${sceneId}`, {
+      method: "DELETE",
+    });
   }
 
 

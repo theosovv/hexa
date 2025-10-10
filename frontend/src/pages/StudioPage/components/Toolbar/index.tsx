@@ -17,16 +17,20 @@ import {
   trackTitleStyle,
 } from "./styles";
 
+import { apiClient } from "@/api/client";
 import { useStudio } from "@/contexts/StudioContext";
 import { Button, Card, Horizontal, Input, Select, Vertical } from "@/uikit";
 import { audioBufferToWavBuffer } from "@/utils/audioEncoding";
-import { apiClient } from "@/api/client";
+import { SceneSwitcher } from "../SceneSwitcher";
 
 export function Toolbar() {
   const studio = useStudio();
   const navigate = useNavigate();
 
   const isRecording = () => studio.recordingStatus() === "recording";
+  const hasRecording = () => studio.recordingStatus?.() === "recorded";
+
+  const currentMode = () => studio.mode();
 
   const [isEditingTitle, setIsEditingTitle] = createSignal(false);
   const [tempTitle, setTempTitle] = createSignal("");
@@ -35,6 +39,12 @@ export function Toolbar() {
   const [bitrate, setBitrate] = createSignal("192");
 
   const toggleExportMenu = () => setIsExportMenuOpen((prev) => !prev);
+
+  const toggleMode = (next: "edit" | "live") => {
+    if (next !== studio.mode()) {
+      studio.setMode(next);
+    }
+  };
 
   const handleSave = async () => {
     await studio.saveTrack();
@@ -163,6 +173,23 @@ export function Toolbar() {
         </Show>
       </Horizontal>
 
+      <Horizontal>
+        <Button
+          variant={currentMode() === "edit" ? "primary" : "secondary"}
+          size="sm"
+          onClick={() => toggleMode("edit")}
+        >
+          Edit
+        </Button>
+        <Button
+          variant={currentMode() === "live" ? "primary" : "secondary"}
+          size="sm"
+          onClick={() => toggleMode("live")}
+        >
+          Live
+        </Button>
+      </Horizontal>
+
       {/* Transport controls */}
       <Horizontal gap="md" align="center">
         <Button
@@ -179,6 +206,8 @@ export function Toolbar() {
         <Button onClick={handleRecordClick} variant={"secondary"} size="sm">
           {isRecording() ? "⏸ Stop" : "🔴 Record"}
         </Button>
+
+        <SceneSwitcher />
 
         <Show when={studio.recordingStatus() === "recorded"}>
           <div class={exportButtonContainer}>

@@ -28,12 +28,16 @@ export const Select: Component<SelectProps> = (props) => {
       {local.label && <label class={labelStyle}>{local.label}</label>}
       <select
         class={cx(selectStyle, local.class)}
-        value={local.value}
+        value={local.value ?? ""}
         onChange={handleChange}
         {...others}
       >
         <For each={local.options}>
-          {(option) => <option value={option.value}>{option.label}</option>}
+          {(option) => (
+            <option value={option.value} selected={option.value === local.value}>
+              {option.label}
+            </option>
+          )}
         </For>
       </select>
     </div>

@@ -20,6 +20,7 @@ import {
 import type { AudioBlockType } from "@/audio/types";
 import { token } from "@/styled-system/tokens";
 import { Collapsible, Horizontal, Vertical } from "@/uikit";
+import { useStudio } from "@/contexts/StudioContext";
 
 
 interface BlockDefinition {
@@ -125,7 +126,12 @@ interface SidebarProps {
 }
 
 export function Sidebar(props: SidebarProps) {
+  const studio = useStudio();
+  const isLive = () => studio.mode() === "live";
+
   const handleDragStart = (e: DragEvent, type: AudioBlockType) => {
+    if (isLive()) return;
+
     e.dataTransfer!.effectAllowed = "copy";
     e.dataTransfer!.setData("blockType", type);
   };
@@ -155,7 +161,7 @@ export function Sidebar(props: SidebarProps) {
                     class={blockItemStyle}
                     draggable={true}
                     onDragStart={(e) => handleDragStart(e, block.type)}
-                    onClick={() => props.onAddBlock(block.type)}
+                    onClick={() => !isLive() && props.onAddBlock(block.type)}
                     style={{ "border-left-color": block.color }}
                   >
                     <div class={blockIconStyle}>{block.icon}</div>

@@ -11,6 +11,15 @@ import type { ConnectionData, NodeData } from "../canvas/types";
 import { debounce } from "../utils/debounce";
 import { deserializeGraph, serializeGraph } from "../utils/graphSerializer";
 import { KeyboardShortcutManager } from "../utils/keyboardShortcuts";
+import type { SceneState } from "@/api/types/scene";
+
+interface SceneSnapshot {
+  id: string;
+  name: string;
+  nodeParams: Record<string, Record<string, unknown>>;
+  mutedNodeIds: string[];
+  position: number;
+}
 
 interface StudioContextType {
   canvasStore: ReturnType<typeof createCanvasStore>;
@@ -20,6 +29,17 @@ interface StudioContextType {
   currentTrack: () => Track | null;
   isPlaying: () => boolean;
   isSaving: () => boolean;
+  scenes: Accessor<SceneSnapshot[]>;
+  activeSceneId: Accessor<string | null>;
+  createScene: (name?: string) => void;
+  updateScene: (id: string, name?: string) => void;
+  removeScene: (id: string) => void;
+  activateScene: (id: string) => void;
+  mode: () => StudioMode;
+  setMode: (mode: StudioMode) => void;
+  setNodeMuted: (id: string, muted: boolean) => void;
+  toggleNodeMute: (id: string) => void;
+  isNodeMuted: (id: string) => boolean;
   selectedNodeId: () => string | null;
   selectNode: (id: string | null) => void;
   togglePlayback: () => void;
@@ -36,6 +56,9 @@ interface StudioContextType {
 }
 
 type RecordingStatus = "idle" | "recording" | "recorded" | "error";
+type StudioMode = "edit" | "live";
+
+const MODE_STORAGE_KEY = "hexa_studio_mode";
 
 const StudioContext = createContext<StudioContextType>();
 
@@ -57,7 +80,206 @@ export const StudioProvider: ParentComponent = (props) => {
   const [recorder, setRecorder] = createSignal<MediaRecorder | null>(null);
   const recordedChunks: BlobPart[] = [];
 
+  const [mutedNodes, setMutedNodes] = createSignal<Set<string>>(new Set());
+  const [scenes, setScenes] = createSignal<SceneSnapshot[]>([]);
+  const [activeSceneId, setActiveSceneId] = createSignal<string | null>(null);
+
+  const generateId = () =>
+    typeof crypto !== "undefined" && crypto.randomUUID
+      ? crypto.randomUUID()
+      : Math.random().toString(36).slice(2);
+
+  const cloneParams = (params: Record<string, unknown>): Record<string, unknown> => {
+    if (typeof structuredClone === "function") {
+      return structuredClone(params);
+    }
+    return JSON.parse(JSON.stringify(params));
+  };
+
+  const captureSceneSnapshot = (name: string, forcedId?: string, forcedPosition?: number): SceneSnapshot => {
+    const nodeParams: Record<string, Record<string, unknown>> = {};
+    canvasStore.nodes().forEach((node, nodeId) => {
+      nodeParams[nodeId] = cloneParams(node.params);
+    });
+
+    return {
+      id: forcedId ?? generateId(),
+      name,
+      nodeParams,
+      mutedNodeIds: Array.from(mutedNodes()),
+      position: forcedPosition ?? scenes().length,
+    };
+  };
+
+  const buildSceneState = (snapshot: SceneSnapshot): SceneState => ({
+    nodeParams: snapshot.nodeParams,
+    mutedNodeIds: snapshot.mutedNodeIds,
+  });
+
+  const applyScene = (scene: SceneSnapshot) => {
+    const nodes = canvasStore.nodes();
+
+    Object.entries(scene.nodeParams).forEach(([nodeId, params]) => {
+      const node = nodes.get(nodeId);
+      if (!node) return;
+
+      const nextParams = { ...node.params, ...params };
+      canvasStore.updateNode(nodeId, { params: nextParams });
+
+      Object.entries(params).forEach(([key, value]) => {
+        audioGraph.updateBlockParam(nodeId, key, value as any);
+      });
+    });
+
+    const muted = new Set(scene.mutedNodeIds);
+    nodes.forEach((_, nodeId) => {
+      setNodeMuted(nodeId, muted.has(nodeId));
+    });
+  };
+
+  const createScene = async (name?: string) => {
+    const track = currentTrack();
+    if (!track) return;
+
+    const sceneName = name ?? `Scene ${scenes().length + 1}`;
+    const snapshot = captureSceneSnapshot(sceneName);
+    const state = buildSceneState(snapshot);
+
+    const created = await apiClient.createScene(track.id, {
+      name: snapshot.name,
+      position: snapshot.position,
+      state_data: state,
+    });
+
+    setScenes((prev) => [
+      ...prev,
+      {
+        id: created.id,
+        name: created.name,
+        nodeParams: snapshot.nodeParams,
+        mutedNodeIds: snapshot.mutedNodeIds,
+        position: created.position,
+      },
+    ]);
+    setActiveSceneId(created.id);
+  };
+
+  const updateScene = async (id: string, name?: string) => {
+    const track = currentTrack();
+    if (!track) return;
+
+    const existing = scenes().find((scene) => scene.id === id);
+    if (!existing) return;
+
+    const snapshot = captureSceneSnapshot(name ?? existing.name, id, existing.position);
+    const state = buildSceneState(snapshot);
+
+    const updated = await apiClient.updateScene(id, {
+      name: snapshot.name,
+      position: snapshot.position,
+      state_data: state,
+    });
+
+    setScenes((prev) =>
+      prev.map((scene) =>
+        scene.id === id
+          ? {
+            id: updated.id,
+            name: updated.name,
+            position: updated.position,
+            nodeParams: snapshot.nodeParams,
+            mutedNodeIds: snapshot.mutedNodeIds,
+          }
+          : scene,
+      ),
+    );
+
+    if (activeSceneId() === id) {
+      applyScene({
+        id: updated.id,
+        name: updated.name,
+        nodeParams: snapshot.nodeParams,
+        mutedNodeIds: snapshot.mutedNodeIds,
+        position: updated.position,
+      });
+    }
+  };
+
+  const activateScene = (id: string) => {
+    const scene = scenes().find((s) => s.id === id);
+    if (!scene) return;
+
+    setActiveSceneId(id);
+    applyScene(scene);
+  };
+
+  const removeScene = async (id: string) => {
+    const track = currentTrack();
+    if (!track) return;
+
+    await apiClient.deleteScene(id);
+
+    setScenes((prev) => {
+      const filtered = prev.filter((scene) => scene.id !== id);
+      if (filtered.length === 0) {
+        setActiveSceneId(null);
+      } else if (activeSceneId() === id) {
+        const nextScene = filtered[0];
+        setActiveSceneId(nextScene.id);
+        applyScene(nextScene);
+      }
+      return filtered;
+    });
+  };
+
+  const isNodeMuted = (id: string) => mutedNodes().has(id);
+
+  const setNodeMuted = (id: string, muted: boolean) => {
+    const block = audioGraph.getBlock(id);
+    if (block) {
+      block.setMuted?.(muted);
+    }
+    setMutedNodes((prev) => {
+      const next = new Set(prev);
+      if (muted) {
+        next.add(id);
+      } else {
+        next.delete(id);
+      }
+      return next;
+    });
+  };
+
+  const toggleNodeMute = (id: string) => {
+    setNodeMuted(id, !isNodeMuted(id));
+  };
+
+  const loadInitialMode = (): StudioMode => {
+    const stored = localStorage.getItem(MODE_STORAGE_KEY);
+    return stored === "live" ? "live" : "edit";
+  };
+
+  const [mode, setMode] = createSignal<StudioMode>(loadInitialMode());
+
   let nodeCounter = 0;
+
+  const switchMode = (next: StudioMode) => {
+    if (mode() === next) return;
+
+    setMode(next);
+    localStorage.setItem(MODE_STORAGE_KEY, next);
+
+    if (next === "live") {
+      if (scenes().length === 0) {
+        const snapshot = captureSceneSnapshot("Scene 1");
+        setScenes([snapshot]);
+        setActiveSceneId(snapshot.id);
+      } else if (activeSceneId()) {
+        const scene = scenes().find((s) => s.id === activeSceneId());
+        if (scene) applyScene(scene);
+      }
+    }
+  };
 
   const selectNode = (id: string | null) => {
     setSelectedNodeId(id);
@@ -85,6 +307,7 @@ export const StudioProvider: ParentComponent = (props) => {
         const blob = new Blob(recordedChunks, { type: "audio/webm" });
         setRecordedBlob(blob);
         setRecordingStatus("recorded");
+        setRecorder(null);
       };
 
       mediaRecorder.onerror = () => {
@@ -163,6 +386,9 @@ export const StudioProvider: ParentComponent = (props) => {
     });
 
     setCurrentTrack(track);
+    setScenes([]);
+    setActiveSceneId(null);
+    setMutedNodes(new Set<string>());
 
     navigate(`/studio/${track.id}`);
     return track;
@@ -197,38 +423,70 @@ export const StudioProvider: ParentComponent = (props) => {
   // Debounced auto-save
   const debouncedSave = () => debounce(saveTrack, 2000);
 
+  const loadScenesForTrack = async (trackId: string) => {
+    try {
+      const rows = await apiClient.listScenes(trackId);
+      if (!rows.length) {
+        setScenes([]);
+        setActiveSceneId(null);
+        return;
+      }
+
+      const snapshots = rows.map((row) => ({
+        id: row.id,
+        name: row.name,
+        nodeParams: row.state_data.nodeParams ?? {},
+        mutedNodeIds: row.state_data.mutedNodeIds ?? [],
+        position: row.position,
+      }));
+
+      setScenes(snapshots);
+      const initialScene = snapshots[0];
+      setActiveSceneId(initialScene.id);
+      applyScene(initialScene);          // ← накатываем параметры на граф
+    } catch (error) {
+      console.error("Failed to load scenes:", error);
+      setScenes([]);
+      setActiveSceneId(null);
+    }
+  };
+
   // Load track from backend
   const loadTrack = async (id: string) => {
     try {
       const track = await apiClient.getTrack(id);
       setCurrentTrack(track);
 
-      // Clear existing graph
       audioGraph.clear();
       canvasStore.nodes().forEach((_, nodeId) => {
         canvasStore.removeNode(nodeId);
       });
+      setMutedNodes(new Set<string>());
+      setScenes([]);
+      setActiveSceneId(null);
 
-      // Deserialize and load graph
       const { nodes, connections } = deserializeGraph(track.graph_data);
 
-      // Recreate nodes
       nodes.forEach((node) => {
         canvasStore.addNode(node);
         audioGraph.createBlock(node.id, node.type as AudioBlockType, node.params);
 
-        // Update node counter
-        const num = parseInt(node.id.split("-")[1]);
-        if (num > nodeCounter) {
+        const num = parseInt(node.id.split("-")[1], 10);
+        if (!Number.isNaN(num) && num > nodeCounter) {
           nodeCounter = num;
         }
       });
 
-      // Recreate connections
       connections.forEach((conn) => {
         canvasStore.addConnection(conn);
         audioGraph.connect(conn.from, conn.to, conn.toPortIndex);
       });
+
+      await loadScenesForTrack(track.id);
+
+      if (scenes().length === 0) {
+        await createScene("Scene 1");
+      }
 
       console.log("✓ Track loaded:", track.title);
     } catch (error) {
@@ -336,6 +594,12 @@ export const StudioProvider: ParentComponent = (props) => {
       setSelectedNodeId(null);
     }
 
+    setMutedNodes((prev) => {
+      const next = new Set(prev);
+      next.delete(id);
+      return next;
+    });
+
     canvasStore.removeNode(id);
     audioGraph.removeBlock(id);
   };
@@ -387,6 +651,17 @@ export const StudioProvider: ParentComponent = (props) => {
   const value: StudioContextType = {
     canvasStore,
     audioGraph,
+    mode,
+    scenes,
+    activeSceneId,
+    createScene,
+    updateScene,
+    removeScene,
+    activateScene,
+    setMode: switchMode,
+    isNodeMuted,
+    toggleNodeMute,
+    setNodeMuted,
     recordingStatus,
     recordedBlob,
     currentTrack,

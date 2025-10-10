@@ -92,7 +92,9 @@ export class OscillatorBlock extends AudioBlock {
 
     switch (key) {
       case "type":
-        this.oscillator!.type = value as OscillatorType;
+        if (this.oscillator) {
+          this.oscillator!.type = value as OscillatorType;
+        }
         break;
       case "frequency":
         this.oscillator?.frequency.setValueAtTime(value as number, this.audioContext.currentTime);

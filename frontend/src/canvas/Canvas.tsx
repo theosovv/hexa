@@ -89,6 +89,8 @@ export function Canvas() {
   };
 
   const moveNode = (id: string, delta: Point) => {
+    if (studio.mode() === "live") return;
+
     studio.canvasStore.moveNode(id, {
       x: delta.x / viewport.getZoom(),
       y: delta.y / viewport.getZoom(),
@@ -139,6 +141,8 @@ export function Canvas() {
     position: Point,
     portIndex?: number,
   ) => {
+    if (studio.mode() === "live") return;
+
     if (port === "output") {
       connectionManager.startConnection(nodeId, position);
 
@@ -181,6 +185,8 @@ export function Canvas() {
   };
 
   const handleDrop = (e: DragEvent) => {
+    if (studio.mode() === "live") return;
+
     e.preventDefault();
     if (!svgRef) return;
 
@@ -269,7 +275,10 @@ export function Canvas() {
                         id={conn.id}
                         from={fromPos}
                         to={toPos}
-                        onDelete={studio.removeConnection}
+                        onDelete={(id) => {
+                          if (studio.mode() === "live") return;
+                          studio.removeConnection(id);
+                        }}
                       />
                     );
                   })()}
